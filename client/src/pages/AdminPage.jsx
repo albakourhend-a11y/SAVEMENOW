@@ -66,7 +66,7 @@ export default function AdminPage() {
             marginBottom: 10,
             padding: "8px 12px",
             borderRadius: 6,
-            backgroundColor: "#f9f9f9"
+            backgroundColor: "#fafafa"
           }}>
             <strong>{v.type}</strong>
             <span style={{
@@ -108,11 +108,12 @@ export default function AdminPage() {
                 <button
                   style={{
                     marginRight: 10,
-                    padding: "6px 12px",
+                    padding: "8px 14px",
                     border: "none",
                     borderRadius: 5,
                     backgroundColor: "#ffc107",
                     color: "black",
+                    fontWeight: "bold",
                     cursor: "pointer"
                   }}
                   onClick={() => {
@@ -126,11 +127,12 @@ export default function AdminPage() {
                 </button>
                 <button
                   style={{
-                    padding: "6px 12px",
+                    padding: "8px 14px",
                     border: "none",
                     borderRadius: 5,
                     backgroundColor: "#28a745",
                     color: "white",
+                    fontWeight: "bold",
                     cursor: "pointer"
                   }}
                   onClick={() => {

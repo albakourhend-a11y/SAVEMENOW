@@ -4,7 +4,7 @@ import axios from "axios";
 export default function DriverPage() {
   const [vehicle, setVehicle] = useState(null);
   const [status, setStatus] = useState("FREE");
-  const vehicleId = 1; // Fake driver = vehicle 1
+  const vehicleId = 1;
 
   useEffect(() => {
     axios.get("http://localhost:5000/vehicle")
@@ -86,14 +86,6 @@ export default function DriverPage() {
           <p><strong>Caller:</strong> {vehicle.assignedEmergency?.caller || "Unknown"}</p>
         </div>
       )}
-
-      <div style={{
-        marginTop: 40,
-        textAlign: "center",
-        color: "#666"
-      }}>
-        <p>Loading map...</p>
-      </div>
     </div>
   );
 }

@@ -7,29 +7,36 @@ export default function AdminPage() {
   const [requests, setRequests] = useState([]);
 
   useEffect(() => {
+    // Fetch vehicles
     axios.get("http://localhost:5000/vehicle")
       .then(res => setVehicles(res.data));
 
+    // Fetch emergency requests
     axios.get("http://localhost:5000/emergency")
       .then(res => setRequests(res.data));
   }, []);
 
   if (!vehicles.length) return <h2>Loading vehicles...</h2>;
 
+  // 👉 Include status so Map can color markers
   const markers = vehicles.map(v => ({
     lat: v.lat,
-    lng: v.lng
+    lng: v.lng,
+    status: v.status,
+    type: v.type // optional, if you want to show labels later
   }));
 
   return (
     <div style={{ padding: 20 }}>
       <h1>System Admin Dashboard</h1>
 
+      {/* Map with vehicle markers */}
       <Map
         center={{ lat: 33.8938, lng: 35.5018 }}
         markers={markers}
       />
 
+      {/* Vehicle Status section */}
       <div style={{ marginTop: 20 }}>
         <h2>Vehicle Status</h2>
         {vehicles.map(v => (
@@ -40,6 +47,7 @@ export default function AdminPage() {
         ))}
       </div>
 
+      {/* Emergency Requests Queue section */}
       <div style={{ marginTop: 40 }}>
         <h2>Emergency Requests Queue</h2>
         {requests.length === 0 ? (

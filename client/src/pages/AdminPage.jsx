@@ -5,6 +5,7 @@ import Map from "../components/Map";
 export default function AdminPage() {
   const [vehicles, setVehicles] = useState([]);
   const [requests, setRequests] = useState([]);
+  const [assignedVehicle, setAssignedVehicle] = useState(null);
 
   useEffect(() => {
     // Fetch vehicles
@@ -16,6 +17,19 @@ export default function AdminPage() {
     axios.get("http://localhost:5000/emergency")
       .then(res => setRequests(res.data))
       .catch(err => console.error("Error fetching requests:", err));
+
+    // ✅ Poll every 5 seconds for live updates
+    const interval = setInterval(() => {
+      axios.get("http://localhost:5000/vehicle")
+        .then(res => setVehicles(res.data))
+        .catch(err => console.error("Error fetching vehicles:", err));
+
+      axios.get("http://localhost:5000/emergency")
+        .then(res => setRequests(res.data))
+        .catch(err => console.error("Error fetching requests:", err));
+    }, 5000);
+
+    return () => clearInterval(interval);
   }, []);
 
   if (!vehicles.length) return <h2>Loading vehicles...</h2>;
@@ -32,19 +46,27 @@ export default function AdminPage() {
     <div style={{ padding: 20 }}>
       <h1>System Admin Dashboard</h1>
 
-      {/* Map with vehicle markers */}
+      {/* Map with vehicle markers and emergencies */}
       <Map
         center={{ lat: 33.8938, lng: 35.5018 }}
         markers={markers}
+        emergencies={requests}
+        assignedVehicle={assignedVehicle}
       />
 
       {/* Vehicle Status section */}
       <div style={{ marginTop: 20 }}>
         <h2>Vehicle Status</h2>
         {vehicles.map(v => (
-          <div key={v.id} style={{ marginBottom: 10 }}>
+          <div key={v._id} style={{ marginBottom: 10 }}>
             <strong>{v.type}</strong> —
             Status: {v.status === "FREE" ? "✅ Available" : "🚨 Busy"}
+            <button
+              style={{ marginLeft: 10 }}
+              onClick={() => setAssignedVehicle(v)}
+            >
+              Assign
+            </button>
           </div>
         ))}
       </div>
@@ -56,17 +78,17 @@ export default function AdminPage() {
           <p>No requests yet.</p>
         ) : (
           requests.map(r => (
-            <div key={r.id} style={{ marginBottom: 10 }}>
+            <div key={r._id} style={{ marginBottom: 10 }}>
               <strong>{r.type}</strong> — {r.location}  
               <br />
               Caller: {r.caller} | Status: {r.status}
               <button
                 style={{ marginLeft: 10 }}
                 onClick={() => {
-                  axios.put(`http://localhost:5000/emergency/${r.id}`, { status: "IN_PROGRESS" })
+                  axios.put(`http://localhost:5000/emergency/${r._id}`, { status: "IN_PROGRESS" })
                     .then(res => {
                       setRequests(prev =>
-                        prev.map(req => req.id === r.id ? res.data : req)
+                        prev.map(req => req._id === r._id ? res.data : req)
                       );
                     })
                     .catch(err => console.error("Error updating request:", err));
@@ -77,10 +99,10 @@ export default function AdminPage() {
               <button
                 style={{ marginLeft: 10 }}
                 onClick={() => {
-                  axios.put(`http://localhost:5000/emergency/${r.id}`, { status: "RESOLVED" })
+                  axios.put(`http://localhost:5000/emergency/${r._id}`, { status: "RESOLVED" })
                     .then(res => {
                       setRequests(prev =>
-                        prev.map(req => req.id === r.id ? res.data : req)
+                        prev.map(req => req._id === r._id ? res.data : req)
                       );
                     })
                     .catch(err => console.error("Error resolving request:", err));

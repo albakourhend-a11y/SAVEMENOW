@@ -16,7 +16,7 @@ export default function AdminPage() {
       .catch(err => console.error("Error fetching requests:", err));
   }, []);
 
-  if (!vehicles.length) return <h2 style={{ textAlign: "center" }}>Loading vehicles...</h2>;
+  if (!vehicles.length) return <h2 style={{ textAlign: "center", color: "#f5f5f5" }}>Loading vehicles...</h2>;
 
   const markers = vehicles.map(v => ({
     lat: v.lat,
@@ -30,34 +30,35 @@ export default function AdminPage() {
       padding: 40,
       maxWidth: 1000,
       margin: "0 auto",
-      backgroundColor: "#f5f7fa",
-      fontFamily: "Arial, sans-serif"
+      backgroundColor: "#121212",
+      fontFamily: "Arial, sans-serif",
+      color: "#f5f5f5"
     }}>
-      <h1 style={{ textAlign: "center", marginBottom: 30 }}>🛠 System Admin Dashboard</h1>
+      <h1 style={{ textAlign: "center", marginBottom: 30, color: "#ffffff" }}>🛠 System Admin Dashboard</h1>
 
       {/* Map Section */}
       <div style={{
-        border: "1px solid #ddd",
+        border: "1px solid #333",
         borderRadius: 10,
         padding: 20,
-        backgroundColor: "white",
-        boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+        backgroundColor: "#1e1e1e",
+        boxShadow: "0 2px 6px rgba(0,0,0,0.6)",
         marginBottom: 30
       }}>
-        <h2 style={{ marginBottom: 15 }}>📍 Vehicle Map</h2>
+        <h2 style={{ marginBottom: 15, color: "#ffffff" }}>📍 Vehicle Map</h2>
         <Map center={{ lat: 33.8938, lng: 35.5018 }} markers={markers} />
       </div>
 
       {/* Vehicle Status Section */}
       <div style={{
         padding: 20,
-        border: "1px solid #ddd",
+        border: "1px solid #333",
         borderRadius: 10,
-        backgroundColor: "white",
-        boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+        backgroundColor: "#1e1e1e",
+        boxShadow: "0 2px 6px rgba(0,0,0,0.6)",
         marginBottom: 30
       }}>
-        <h2 style={{ marginBottom: 20 }}>🚗 Vehicle Status</h2>
+        <h2 style={{ marginBottom: 20, color: "#ffffff" }}>🚗 Vehicle Status</h2>
         {vehicles.map(v => (
           <div key={v.id} style={{
             display: "flex",
@@ -66,7 +67,7 @@ export default function AdminPage() {
             marginBottom: 10,
             padding: "8px 12px",
             borderRadius: 6,
-            backgroundColor: "#fafafa"
+            backgroundColor: "#2a2a2a"
           }}>
             <strong>{v.type}</strong>
             <span style={{
@@ -85,12 +86,12 @@ export default function AdminPage() {
       {/* Emergency Requests Section */}
       <div style={{
         padding: 20,
-        border: "1px solid #ddd",
+        border: "1px solid #333",
         borderRadius: 10,
-        backgroundColor: "white",
-        boxShadow: "0 2px 6px rgba(0,0,0,0.1)"
+        backgroundColor: "#1e1e1e",
+        boxShadow: "0 2px 6px rgba(0,0,0,0.6)"
       }}>
-        <h2 style={{ marginBottom: 20 }}>📋 Emergency Requests Queue</h2>
+        <h2 style={{ marginBottom: 20, color: "#ffffff" }}>📋 Emergency Requests Queue</h2>
         {requests.length === 0 ? (
           <p>No requests yet.</p>
         ) : (
@@ -98,9 +99,9 @@ export default function AdminPage() {
             <div key={r.id} style={{
               marginBottom: 15,
               padding: 15,
-              border: "1px solid #eee",
+              border: "1px solid #444",
               borderRadius: 8,
-              backgroundColor: "#fafafa"
+              backgroundColor: "#2a2a2a"
             }}>
               <strong>{r.type}</strong> — {r.location}<br />
               Caller: {r.caller} | Status: {r.status}

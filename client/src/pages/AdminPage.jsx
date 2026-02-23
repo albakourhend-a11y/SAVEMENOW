@@ -9,11 +9,13 @@ export default function AdminPage() {
   useEffect(() => {
     // Fetch vehicles
     axios.get("http://localhost:5000/vehicle")
-      .then(res => setVehicles(res.data));
+      .then(res => setVehicles(res.data))
+      .catch(err => console.error("Error fetching vehicles:", err));
 
     // Fetch emergency requests
     axios.get("http://localhost:5000/emergency")
-      .then(res => setRequests(res.data));
+      .then(res => setRequests(res.data))
+      .catch(err => console.error("Error fetching requests:", err));
   }, []);
 
   if (!vehicles.length) return <h2>Loading vehicles...</h2>;
@@ -66,7 +68,8 @@ export default function AdminPage() {
                       setRequests(prev =>
                         prev.map(req => req.id === r.id ? res.data : req)
                       );
-                    });
+                    })
+                    .catch(err => console.error("Error updating request:", err));
                 }}
               >
                 Mark In Progress
@@ -79,7 +82,8 @@ export default function AdminPage() {
                       setRequests(prev =>
                         prev.map(req => req.id === r.id ? res.data : req)
                       );
-                    });
+                    })
+                    .catch(err => console.error("Error resolving request:", err));
                 }}
               >
                 Resolve

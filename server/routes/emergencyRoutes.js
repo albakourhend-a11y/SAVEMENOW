@@ -2,10 +2,6 @@ const express = require("express");
 const vehicles = require("../data/vehicles");
 const getDistance = require("../utils/distance");
 
-// ✅ Add MongoDB models
-const Emergency = require("../models/Emergency");
-const Vehicle = require("../models/Vehicle");
-
 const router = express.Router();
 
 // Temporary in-memory emergency requests list

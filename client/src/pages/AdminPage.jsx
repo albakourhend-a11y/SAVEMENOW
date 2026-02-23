@@ -7,20 +7,17 @@ export default function AdminPage() {
   const [requests, setRequests] = useState([]);
 
   useEffect(() => {
-    // Fetch vehicles
     axios.get("http://localhost:5000/vehicle")
       .then(res => setVehicles(res.data))
       .catch(err => console.error("Error fetching vehicles:", err));
 
-    // Fetch emergency requests
     axios.get("http://localhost:5000/emergency")
       .then(res => setRequests(res.data))
       .catch(err => console.error("Error fetching requests:", err));
   }, []);
 
-  if (!vehicles.length) return <h2>Loading vehicles...</h2>;
+  if (!vehicles.length) return <h2 style={{ textAlign: "center" }}>Loading vehicles...</h2>;
 
-  // 👉 Include status and type so Map can use them
   const markers = vehicles.map(v => ({
     lat: v.lat,
     lng: v.lng,
@@ -29,65 +26,123 @@ export default function AdminPage() {
   }));
 
   return (
-    <div style={{ padding: 20 }}>
-      <h1>System Admin Dashboard</h1>
+    <div style={{
+      padding: 40,
+      maxWidth: 1000,
+      margin: "0 auto",
+      backgroundColor: "#f5f7fa",
+      fontFamily: "Arial, sans-serif"
+    }}>
+      <h1 style={{ textAlign: "center", marginBottom: 30 }}>🛠 System Admin Dashboard</h1>
 
-      {/* Map with vehicle markers */}
-      <Map
-        center={{ lat: 33.8938, lng: 35.5018 }}
-        markers={markers}
-      />
+      {/* Map Section */}
+      <div style={{
+        border: "1px solid #ddd",
+        borderRadius: 10,
+        padding: 20,
+        backgroundColor: "white",
+        boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+        marginBottom: 30
+      }}>
+        <h2 style={{ marginBottom: 15 }}>📍 Vehicle Map</h2>
+        <Map center={{ lat: 33.8938, lng: 35.5018 }} markers={markers} />
+      </div>
 
-      {/* Vehicle Status section */}
-      <div style={{ marginTop: 20 }}>
-        <h2>Vehicle Status</h2>
+      {/* Vehicle Status Section */}
+      <div style={{
+        padding: 20,
+        border: "1px solid #ddd",
+        borderRadius: 10,
+        backgroundColor: "white",
+        boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+        marginBottom: 30
+      }}>
+        <h2 style={{ marginBottom: 20 }}>🚗 Vehicle Status</h2>
         {vehicles.map(v => (
-          <div key={v.id} style={{ marginBottom: 10 }}>
-            <strong>{v.type}</strong> —
-            Status: {v.status === "FREE" ? "✅ Available" : "🚨 Busy"}
+          <div key={v.id} style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 10,
+            padding: "8px 12px",
+            borderRadius: 6,
+            backgroundColor: "#f9f9f9"
+          }}>
+            <strong>{v.type}</strong>
+            <span style={{
+              padding: "4px 10px",
+              borderRadius: 20,
+              fontWeight: "bold",
+              color: "white",
+              backgroundColor: v.status === "FREE" ? "#28a745" : "#dc3545"
+            }}>
+              {v.status === "FREE" ? "Available" : "Busy"}
+            </span>
           </div>
         ))}
       </div>
 
-      {/* Emergency Requests Queue section */}
-      <div style={{ marginTop: 40 }}>
-        <h2>Emergency Requests Queue</h2>
+      {/* Emergency Requests Section */}
+      <div style={{
+        padding: 20,
+        border: "1px solid #ddd",
+        borderRadius: 10,
+        backgroundColor: "white",
+        boxShadow: "0 2px 6px rgba(0,0,0,0.1)"
+      }}>
+        <h2 style={{ marginBottom: 20 }}>📋 Emergency Requests Queue</h2>
         {requests.length === 0 ? (
           <p>No requests yet.</p>
         ) : (
           requests.map(r => (
-            <div key={r.id} style={{ marginBottom: 10 }}>
-              <strong>{r.type}</strong> — {r.location}  
-              <br />
+            <div key={r.id} style={{
+              marginBottom: 15,
+              padding: 15,
+              border: "1px solid #eee",
+              borderRadius: 8,
+              backgroundColor: "#fafafa"
+            }}>
+              <strong>{r.type}</strong> — {r.location}<br />
               Caller: {r.caller} | Status: {r.status}
-              <button
-                style={{ marginLeft: 10 }}
-                onClick={() => {
-                  axios.put(`http://localhost:5000/emergency/${r.id}`, { status: "IN_PROGRESS" })
-                    .then(res => {
-                      setRequests(prev =>
-                        prev.map(req => req.id === r.id ? res.data : req)
-                      );
-                    })
-                    .catch(err => console.error("Error updating request:", err));
-                }}
-              >
-                Mark In Progress
-              </button>
-              <button
-                style={{ marginLeft: 10 }}
-                onClick={() => {
-                  axios.put(`http://localhost:5000/emergency/${r.id}`, { status: "RESOLVED" })
-                    .then(res => {
-                      setRequests(prev =>
-                        prev.map(req => req.id === r.id ? res.data : req)
-                      );
-                    })
-                    .catch(err => console.error("Error resolving request:", err));
-                }}
-              >
-                Resolve
-              </button>
+              <div style={{ marginTop: 10 }}>
+                <button
+                  style={{
+                    marginRight: 10,
+                    padding: "6px 12px",
+                    border: "none",
+                    borderRadius: 5,
+                    backgroundColor: "#ffc107",
+                    color: "black",
+                    cursor: "pointer"
+                  }}
+                  onClick={() => {
+                    axios.put(`http://localhost:5000/emergency/${r.id}`, { status: "IN_PROGRESS" })
+                      .then(res => {
+                        setRequests(prev => prev.map(req => req.id === r.id ? res.data : req));
+                      });
+                  }}
+                >
+                  Mark In Progress
+                </button>
+                <button
+                  style={{
+                    padding: "6px 12px",
+                    border: "none",
+                    borderRadius: 5,
+                    backgroundColor: "#28a745",
+                    color: "white",
+                    cursor: "pointer"
+                  }}
+                  onClick={() => {
+                    axios.put(`http://localhost:5000/emergency/${r.id}`, { status: "RESOLVED" })
+                      .then(res => {
+                        setRequests(prev => prev.map(req => req.id === r.id ? res.data : req));
+                      });
+                  }}
+                >
+                  Resolve
+                </button>
+              </div>
             </div>
           ))
         )}
@@ -95,5 +150,4 @@ export default function AdminPage() {
     </div>
   );
 }
-
 

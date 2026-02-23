@@ -26,6 +26,29 @@ app.use(express.json());
 app.use("/emergency", emergencyRoutes);
 app.use("/vehicle", vehicleRoutes);
 
+// ✅ New route: update vehicle location
+app.put("/vehicle/:id/location", async (req, res) => {
+  const { lat, lng } = req.body;
+  const vehicleId = req.params.id;
+
+  try {
+    const vehicle = await Vehicle.findByIdAndUpdate(
+      vehicleId,
+      { lat, lng },
+      { new: true }
+    );
+
+    if (!vehicle) {
+      return res.status(404).json({ error: "Vehicle not found" });
+    }
+
+    res.json(vehicle);
+  } catch (err) {
+    console.error("❌ Error updating vehicle location:", err);
+    res.status(500).json({ error: "Failed to update location" });
+  }
+});
+
 // ✅ Use dynamic PORT (important for Render)
 const PORT = process.env.PORT || 5000;
 

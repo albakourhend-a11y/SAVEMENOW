@@ -7,16 +7,11 @@ export default function AdminPage() {
   const [requests, setRequests] = useState([]);
 
   useEffect(() => {
-    axios.get("http://localhost:5000/vehicle")
-      .then(res => setVehicles(res.data))
-      .catch(err => console.error("Error fetching vehicles:", err));
-
-    axios.get("http://localhost:5000/emergency")
-      .then(res => setRequests(res.data))
-      .catch(err => console.error("Error fetching requests:", err));
+    axios.get("http://localhost:5000/vehicle").then(res => setVehicles(res.data));
+    axios.get("http://localhost:5000/emergency").then(res => setRequests(res.data));
   }, []);
 
-  if (!vehicles.length) return <h2 style={{ textAlign: "center", color: "#f5f5f5" }}>Loading vehicles...</h2>;
+  if (!vehicles.length) return <h2 style={{ textAlign: "center", color: "#e8eefc" }}>Loading vehicles...</h2>;
 
   const markers = vehicles.map(v => ({
     lat: v.lat,
@@ -26,122 +21,53 @@ export default function AdminPage() {
   }));
 
   return (
-    <div style={{
-      padding: 40,
-      maxWidth: 1000,
-      margin: "0 auto",
-      backgroundColor: "#121212",
-      fontFamily: "Arial, sans-serif",
-      color: "#f5f5f5"
-    }}>
-      <h1 style={{ textAlign: "center", marginBottom: 30, color: "#ffffff" }}>🛠 System Admin Dashboard</h1>
+    <div style={styles.page}>
+      <h1 style={styles.h1}>🛠 System Admin Dashboard</h1>
 
-      {/* Map Section */}
-      <div style={{
-        border: "1px solid #333",
-        borderRadius: 10,
-        padding: 20,
-        backgroundColor: "#1e1e1e",
-        boxShadow: "0 2px 6px rgba(0,0,0,0.6)",
-        marginBottom: 30
-      }}>
-        <h2 style={{ marginBottom: 15, color: "#ffffff" }}>📍 Vehicle Map</h2>
+      {/* Map */}
+      <section style={styles.card}>
+        <h2 style={styles.h2}>📍 Vehicle Map</h2>
         <Map center={{ lat: 33.8938, lng: 35.5018 }} markers={markers} />
-      </div>
+      </section>
 
-      {/* Vehicle Status Section */}
-      <div style={{
-        padding: 20,
-        border: "1px solid #333",
-        borderRadius: 10,
-        backgroundColor: "#1e1e1e",
-        boxShadow: "0 2px 6px rgba(0,0,0,0.6)",
-        marginBottom: 30
-      }}>
-        <h2 style={{ marginBottom: 20, color: "#ffffff" }}>🚗 Vehicle Status</h2>
+      {/* Vehicle Status */}
+      <section style={styles.card}>
+        <h2 style={styles.h2}>🚗 Vehicle Status</h2>
         {vehicles.map(v => (
-          <div key={v.id} style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 10,
-            padding: "8px 12px",
-            borderRadius: 6,
-            backgroundColor: "#2a2a2a"
-          }}>
+          <div key={v.id} style={styles.row}>
             <strong>{v.type}</strong>
             <span style={{
-              padding: "4px 10px",
-              borderRadius: 20,
-              fontWeight: "bold",
-              color: "white",
-              backgroundColor: v.status === "FREE" ? "#28a745" : "#dc3545"
+              ...styles.badge,
+              background: v.status === "FREE" ? "#28a745" : "#dc3545"
             }}>
               {v.status === "FREE" ? "Available" : "Busy"}
             </span>
           </div>
         ))}
-      </div>
+      </section>
 
-      {/* Emergency Requests Section */}
-      <div style={{
-        padding: 20,
-        border: "1px solid #333",
-        borderRadius: 10,
-        backgroundColor: "#1e1e1e",
-        boxShadow: "0 2px 6px rgba(0,0,0,0.6)"
-      }}>
-        <h2 style={{ marginBottom: 20, color: "#ffffff" }}>📋 Emergency Requests Queue</h2>
+      {/* Emergency Requests */}
+      <section style={styles.card}>
+        <h2 style={styles.h2}>📋 Emergency Requests Queue</h2>
         {requests.length === 0 ? (
-          <p>No requests yet.</p>
+          <p style={styles.muted}>No requests yet.</p>
         ) : (
           requests.map(r => (
-            <div key={r.id} style={{
-              marginBottom: 15,
-              padding: 15,
-              border: "1px solid #444",
-              borderRadius: 8,
-              backgroundColor: "#2a2a2a"
-            }}>
+            <div key={r.id} style={styles.requestCard}>
               <strong>{r.type}</strong> — {r.location}<br />
               Caller: {r.caller} | Status: {r.status}
               <div style={{ marginTop: 10 }}>
                 <button
-                  style={{
-                    marginRight: 10,
-                    padding: "8px 14px",
-                    border: "none",
-                    borderRadius: 5,
-                    backgroundColor: "#ffc107",
-                    color: "black",
-                    fontWeight: "bold",
-                    cursor: "pointer"
-                  }}
-                  onClick={() => {
-                    axios.put(`http://localhost:5000/emergency/${r.id}`, { status: "IN_PROGRESS" })
-                      .then(res => {
-                        setRequests(prev => prev.map(req => req.id === r.id ? res.data : req));
-                      });
-                  }}
+                  style={{ ...styles.btn, background: "#ffc107", color: "black" }}
+                  onClick={() => axios.put(`http://localhost:5000/emergency/${r.id}`, { status: "IN_PROGRESS" })
+                    .then(res => setRequests(prev => prev.map(req => req.id === r.id ? res.data : req)))}
                 >
                   Mark In Progress
                 </button>
                 <button
-                  style={{
-                    padding: "8px 14px",
-                    border: "none",
-                    borderRadius: 5,
-                    backgroundColor: "#28a745",
-                    color: "white",
-                    fontWeight: "bold",
-                    cursor: "pointer"
-                  }}
-                  onClick={() => {
-                    axios.put(`http://localhost:5000/emergency/${r.id}`, { status: "RESOLVED" })
-                      .then(res => {
-                        setRequests(prev => prev.map(req => req.id === r.id ? res.data : req));
-                      });
-                  }}
+                  style={{ ...styles.btn, background: "#28a745", color: "white" }}
+                  onClick={() => axios.put(`http://localhost:5000/emergency/${r.id}`, { status: "RESOLVED" })
+                    .then(res => setRequests(prev => prev.map(req => req.id === r.id ? res.data : req)))}
                 >
                   Resolve
                 </button>
@@ -149,8 +75,61 @@ export default function AdminPage() {
             </div>
           ))
         )}
-      </div>
+      </section>
     </div>
   );
 }
+
+const styles = {
+  page: {
+    minHeight: "100vh",
+    background: "#0b1220",
+    color: "#e8eefc",
+    padding: 24,
+    fontFamily: "Arial, sans-serif",
+  },
+  h1: { textAlign: "center", marginBottom: 24 },
+  h2: { marginBottom: 12 },
+  muted: { color: "#9fb0d0" },
+  card: {
+    border: "1px solid rgba(255,255,255,.10)",
+    background: "#111a2e",
+    borderRadius: 16,
+    padding: 16,
+    boxShadow: "0 10px 30px rgba(0,0,0,.25)",
+    marginBottom: 20,
+  },
+  row: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "8px 12px",
+    borderRadius: 8,
+    background: "rgba(255,255,255,.04)",
+    marginBottom: 8,
+  },
+  badge: {
+    padding: "4px 10px",
+    borderRadius: 999,
+    fontWeight: "bold",
+    color: "white",
+  },
+  requestCard: {
+    marginBottom: 12,
+    padding: 12,
+    borderRadius: 12,
+    background: "rgba(255,255,255,.04)",
+    border: "1px solid rgba(255,255,255,.10)",
+  },
+  btn: {
+    border: "none",
+    borderRadius: 8,
+    padding: "8px 14px",
+    fontWeight: "bold",
+    cursor: "pointer",
+    marginRight: 10,
+  },
+};
+
+
 

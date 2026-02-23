@@ -33,22 +33,15 @@ export default function DriverPage() {
     }).then(() => setStatus(newStatus));
   };
 
-  if (!vehicle) return <h2>Loading driver...</h2>;
+  if (!vehicle) return <h2 style={{ color: "#e8eefc", textAlign: "center" }}>Loading driver...</h2>;
 
   return (
-    <div style={{
-      padding: 40,
-      maxWidth: 600,
-      margin: "0 auto",
-      border: "1px solid #ddd",
-      borderRadius: 10,
-      backgroundColor: "#fafafa"
-    }}>
-      <h1 style={{ textAlign: "center" }}>Driver Dashboard</h1>
+    <div style={styles.page}>
+      <h1 style={styles.h1}>Driver Dashboard</h1>
 
       <h3 style={{
         textAlign: "center",
-        color: status === "FREE" ? "green" : "red"
+        color: status === "FREE" ? "#28a745" : "#dc3545"
       }}>
         Status: {status === "FREE" ? "✅ Available" : "🚨 Busy"}
       </h3>
@@ -56,31 +49,16 @@ export default function DriverPage() {
       <button
         onClick={toggleStatus}
         style={{
-          display: "block",
-          width: "100%",
-          padding: "12px",
-          marginTop: 20,
-          fontSize: "16px",
-          fontWeight: "bold",
-          backgroundColor: status === "FREE" ? "#d9534f" : "#5cb85c",
-          color: "white",
-          border: "none",
-          borderRadius: 5,
-          cursor: "pointer"
+          ...styles.dangerBtn,
+          background: status === "FREE" ? "#e11d48" : "#28a745"
         }}
       >
         {status === "FREE" ? "Go Busy" : "Go Available"}
       </button>
 
       {status === "BUSY" && (
-        <div style={{
-          marginTop: 30,
-          padding: 20,
-          backgroundColor: "#ffe5e5",
-          border: "1px solid #ff0000",
-          borderRadius: 8
-        }}>
-          <h2 style={{ color: "red" }}>🚨 Emergency Assigned!</h2>
+        <div style={styles.emergencyCard}>
+          <h2 style={{ color: "#e11d48" }}>🚨 Emergency Assigned!</h2>
           <p><strong>Type:</strong> {vehicle.assignedEmergency?.type || "Unknown"}</p>
           <p><strong>Location:</strong> {vehicle.assignedEmergency?.location || "Unknown"}</p>
           <p><strong>Caller:</strong> {vehicle.assignedEmergency?.caller || "Unknown"}</p>
@@ -89,3 +67,37 @@ export default function DriverPage() {
     </div>
   );
 }
+
+const styles = {
+  page: {
+    minHeight: "100vh",
+    background: "#0b1220",
+    color: "#e8eefc",
+    padding: 24,
+    fontFamily: "Arial, sans-serif",
+    maxWidth: 600,
+    margin: "0 auto",
+  },
+  h1: { textAlign: "center", marginBottom: 20 },
+  dangerBtn: {
+    display: "block",
+    width: "100%",
+    padding: "14px 16px",
+    marginTop: 20,
+    fontSize: "16px",
+    fontWeight: "bold",
+    color: "white",
+    border: "none",
+    borderRadius: 14,
+    cursor: "pointer",
+    letterSpacing: ".5px",
+  },
+  emergencyCard: {
+    marginTop: 30,
+    padding: 20,
+    background: "rgba(225,29,72,.12)",
+    border: "1px solid rgba(225,29,72,.25)",
+    borderRadius: 14,
+  },
+};
+

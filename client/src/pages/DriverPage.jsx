@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 
@@ -168,3 +169,10 @@ export default function DriverPage() {
     </div>
   );
 }
+=======
+function DriverPage() {
+  return <h1 style={{ textAlign: "center" }}>Driver Dashboard</h1>;
+}
+
+export default DriverPage;
+>>>>>>> origin/main

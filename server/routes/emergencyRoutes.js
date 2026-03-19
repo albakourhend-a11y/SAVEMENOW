@@ -4,6 +4,13 @@ const getDistance = require("../utils/distance");
 
 const router = express.Router();
 
+const speedMap = {
+  "Ambulance": 60,
+  "Fire Truck": 50,
+  "Police Car": 70,
+  "Rescue Jeep": 60,
+};
+
 // Temporary in-memory emergency requests list
 let requests = [
   { id: 1, caller: "John Doe", location: "Main Street", type: "Fire", time: new Date(), status: "Pending" }
@@ -14,6 +21,7 @@ router.post("/request", (req, res) => {
   const { lat, lng, emergencyType, caller, location } = req.body;
 
   const available = vehicles.filter(v => v.status === "FREE");
+  console.log("Available vehicles:", available.length, "| All vehicles:", vehicles.map(v => v.status));
 
   if (!available.length) {
     return res.status(400).json({ message: "No vehicles available" });
@@ -32,7 +40,6 @@ router.post("/request", (req, res) => {
 
   nearest.status = "BUSY";
 
-  // Add request to queue
   const newRequest = {
     id: requests.length + 1,
     caller,
@@ -43,12 +50,17 @@ router.post("/request", (req, res) => {
   };
   requests.push(newRequest);
 
+  const speedKmH = speedMap[nearest.type] || 60;
+  const etaMinutes = Math.ceil((minDist / speedKmH) * 60);
+
   res.json({
     message: "Emergency assigned",
     vehicle: nearest,
-    request: newRequest
+    request: newRequest,
+    etaMinutes: etaMinutes,
+    distance: `${minDist.toFixed(2)} km`,
   });
-});
+}); // ← THIS WAS MISSING ✅
 
 // Get all emergency requests
 router.get("/", (req, res) => {

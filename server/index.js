@@ -6,6 +6,8 @@ const mongoose = require("mongoose");
 // Import route files
 const emergencyRoutes = require("./routes/emergencyRoutes");
 const vehicleRoutes = require("./routes/vehicleRoutes");
+const authRoutes = require("./routes/authRoutes"); 
+
 
 const app = express();
 
@@ -22,6 +24,7 @@ app.use(express.json());
 // Register routes
 app.use("/emergency", emergencyRoutes);
 app.use("/vehicle", vehicleRoutes);
+app.use("/auth", authRoutes);
 
 // ✅ Use dynamic PORT (important for Render)
 const PORT = process.env.PORT || 5000;

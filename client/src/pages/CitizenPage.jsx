@@ -3,15 +3,16 @@ import { useMemo, useState } from "react";
 import axios from "axios";
 
 const EMERGENCY_TYPES = [
-  { key: "Medical", icon: "🩺", title: "Medical", desc: "Ambulance / urgent health help" },
-  { key: "Fire", icon: "🔥", title: "Fire", desc: "Fire, smoke, gas leak, explosion risk" },
-  { key: "Police", icon: "🚓", title: "Police", desc: "Threat, robbery, violence, danger" },
+  { key: "Medical", icon: "🩺", title: "Medical", desc: "Ambulance / urgent health help", color: "#0ea5e9", bg: "rgba(14,165,233,.12)", border: "rgba(14,165,233,.3)" },
+  { key: "Fire", icon: "🔥", title: "Fire", desc: "Fire, smoke, gas leak, explosion risk", color: "#f97316", bg: "rgba(249,115,22,.12)", border: "rgba(249,115,22,.3)" },
+  { key: "Police", icon: "🚓", title: "Police", desc: "Threat, robbery, violence, danger", color: "#7c3aed", bg: "rgba(124,58,237,.12)", border: "rgba(124,58,237,.3)" },
 ];
 
 export default function CitizenPage() {
   const [type, setType] = useState("Medical");
-  const [status, setStatus] = useState({ state: "idle", msg: "" }); // idle | locating | sending | success | error
+  const [status, setStatus] = useState({ state: "idle", msg: "" });
   const [etaMinutes, setEtaMinutes] = useState(null);
+  const [distance, setDistance] = useState(null);
 
   const selected = useMemo(
     () => EMERGENCY_TYPES.find((t) => t.key === type),
@@ -22,6 +23,7 @@ export default function CitizenPage() {
 
   const sendEmergency = () => {
     setEtaMinutes(null);
+    setDistance(null);
     setStatus({ state: "locating", msg: "Getting your location…" });
 
     navigator.geolocation.getCurrentPosition(
@@ -36,27 +38,24 @@ export default function CitizenPage() {
           })
           .then((res) => {
             const eta = res?.data?.etaMinutes;
+            const dist = res?.data?.distance;
             if (Number.isFinite(eta)) setEtaMinutes(eta);
-
-            setStatus({
-              state: "success",
-              msg: `Request sent (${type}).`,
-            });
+            if (dist) setDistance(dist);
+            setStatus({ state: "success", msg: `Request sent! Help is on the way.` });
           })
           .catch(() => {
             setStatus({
               state: "error",
-              msg: "Couldn’t send request. Is the backend running on port 5000?",
+              msg: "Couldn't send request. Is the backend running on port 5000?",
             });
           });
       },
       (err) => {
         setStatus({
           state: "error",
-          msg:
-            err.code === 1
-              ? "Location permission denied. Enable it and try again."
-              : "Couldn’t get your location. Try again.",
+          msg: err.code === 1
+            ? "Location permission denied. Enable it and try again."
+            : "Couldn't get your location. Try again.",
         });
       },
       { enableHighAccuracy: true, timeout: 10000 }
@@ -65,42 +64,57 @@ export default function CitizenPage() {
 
   return (
     <div style={styles.page}>
+      {/* Header */}
       <header style={styles.header}>
         <div>
+          <div style={styles.badge}>🆘 EMERGENCY PORTAL</div>
           <h1 style={styles.h1}>Citizen Emergency Request</h1>
           <p style={styles.muted}>
-            Select the emergency type and request help. We’ll use your current GPS location.
+            Select the emergency type and request help. We'll use your current GPS location.
           </p>
         </div>
-
-        <div style={styles.pill}>
-          Selected: <span style={{ marginLeft: 6 }}>{selected?.icon}</span>{" "}
-          <b style={{ marginLeft: 6 }}>{selected?.title}</b>
+        <div style={{ ...styles.pill, borderColor: selected?.border, background: selected?.bg }}>
+          <span>{selected?.icon}</span>
+          <b style={{ marginLeft: 6, color: selected?.color }}>{selected?.title}</b>
         </div>
       </header>
 
       <div style={styles.grid}>
-        {/* Map */}
+        {/* Map Section */}
         <section style={styles.card}>
-          <h2 style={styles.h2}>Your location</h2>
+          <h2 style={styles.h2}>📍 Your Location</h2>
           <p style={styles.muted}>Your GPS location is used to dispatch the nearest vehicle.</p>
 
           <div style={styles.mapWrap}>
             <Map />
           </div>
 
-          {/* ETA card */}
-          <div style={styles.etaCard}>
-            <div style={styles.etaTitle}>Estimated arrival (ETA)</div>
+          {/* ETA Card */}
+          <div style={{
+            ...styles.etaCard,
+            borderColor: etaMinutes !== null ? "rgba(34,197,94,.4)" : "rgba(255,255,255,.10)",
+            background: etaMinutes !== null ? "rgba(34,197,94,.08)" : "rgba(255,255,255,.04)",
+          }}>
+            <div style={styles.etaTitle}>🕐 Estimated Arrival (ETA)</div>
             {etaMinutes === null ? (
               <div style={styles.etaValueMuted}>
                 {status.state === "success"
-                  ? "ETA not available (backend didn’t return etaMinutes)."
+                  ? "ETA not available from backend."
                   : "Send a request to see ETA."}
               </div>
             ) : (
-              <div style={styles.etaValue}>
-                ~{etaMinutes} minute{etaMinutes === 1 ? "" : "s"}
+              <div style={styles.etaRow}>
+                <div style={styles.etaValue}>
+                  ~{etaMinutes} min{etaMinutes === 1 ? "" : "s"}
+                </div>
+                {distance && (
+                  <div style={styles.etaDistance}>📍 {distance} away</div>
+                )}
+              </div>
+            )}
+            {etaMinutes !== null && (
+              <div style={styles.etaSubtext}>
+                🚨 Help is on the way — stay calm and stay on the line
               </div>
             )}
           </div>
@@ -108,7 +122,8 @@ export default function CitizenPage() {
 
         {/* Controls */}
         <section style={styles.card}>
-          <h2 style={styles.h2}>Emergency type</h2>
+          <h2 style={styles.h2}>🚨 Emergency Type</h2>
+          <p style={styles.muted}>Select the type of emergency you are facing.</p>
 
           <div style={styles.typeGrid}>
             {EMERGENCY_TYPES.map((t) => {
@@ -120,12 +135,16 @@ export default function CitizenPage() {
                   onClick={() => setType(t.key)}
                   style={{
                     ...styles.typeBtn,
-                    ...(active ? styles.typeBtnActive : null),
+                    background: active ? t.bg : "rgba(255,255,255,.04)",
+                    border: active ? `1px solid ${t.border}` : "1px solid rgba(255,255,255,.10)",
+                    outline: active ? `2px solid ${t.border}` : "none",
                   }}
                 >
                   <div style={styles.typeTop}>
                     <span style={styles.typeIcon}>{t.icon}</span>
-                    <span style={styles.typeTitle}>{t.title}</span>
+                    <span style={{ ...styles.typeTitle, color: active ? t.color : "#e8eefc" }}>
+                      {t.title}
+                    </span>
                   </div>
                   <div style={styles.typeDesc}>{t.desc}</div>
                 </button>
@@ -134,16 +153,16 @@ export default function CitizenPage() {
           </div>
 
           {status.state !== "idle" && (
-            <div
-              style={{
-                ...styles.banner,
-                ...(status.state === "success"
-                  ? styles.bannerSuccess
-                  : status.state === "error"
-                  ? styles.bannerError
-                  : styles.bannerInfo),
-              }}
-            >
+            <div style={{
+              ...styles.banner,
+              ...(status.state === "success" ? styles.bannerSuccess
+                : status.state === "error" ? styles.bannerError
+                : styles.bannerInfo),
+            }}>
+              {status.state === "locating" && "📡 "}
+              {status.state === "sending" && "📤 "}
+              {status.state === "success" && "✅ "}
+              {status.state === "error" && "❌ "}
               {status.msg}
             </div>
           )}
@@ -154,14 +173,18 @@ export default function CitizenPage() {
             disabled={disabled}
             style={{
               ...styles.dangerBtn,
-              ...(disabled ? styles.dangerBtnDisabled : null),
+              background: disabled ? "#555" : "#e11d48",
+              cursor: disabled ? "not-allowed" : "pointer",
+              opacity: disabled ? 0.7 : 1,
             }}
           >
-            {disabled ? "SENDING…" : "REQUEST HELP"}
+            {status.state === "locating" ? "📡 LOCATING…"
+              : status.state === "sending" ? "📤 SENDING…"
+              : "🆘 REQUEST HELP"}
           </button>
 
-          <p style={{ ...styles.muted, fontSize: 12, marginTop: 10 }}>
-            Use only for real emergencies.
+          <p style={{ ...styles.muted, fontSize: 12, marginTop: 10, textAlign: "center" }}>
+            🔒 Use only for real emergencies.
           </p>
         </section>
       </div>
@@ -186,17 +209,30 @@ const styles = {
     gap: 16,
     flexWrap: "wrap",
   },
-  h1: { margin: 0, fontSize: 28 },
-  h2: { margin: "0 0 6px 0", fontSize: 18 },
-  muted: { margin: "6px 0 0 0", color: "#9fb0d0" },
+  badge: {
+    display: "inline-block",
+    background: "rgba(225,29,72,.15)",
+    border: "1px solid rgba(225,29,72,.3)",
+    color: "#fb7185",
+    borderRadius: 999,
+    padding: "4px 14px",
+    fontSize: 11,
+    fontWeight: 700,
+    letterSpacing: 1,
+    marginBottom: 10,
+  },
+  h1: { margin: 0, fontSize: 28, fontWeight: 900 },
+  h2: { margin: "0 0 6px 0", fontSize: 18, fontWeight: 800 },
+  muted: { margin: "6px 0 0 0", color: "#9fb0d0", fontSize: 13 },
   pill: {
-    border: "1px solid rgba(255,255,255,.10)",
-    background: "rgba(255,255,255,.06)",
-    padding: "10px 12px",
+    border: "1px solid",
+    padding: "10px 16px",
     borderRadius: 999,
     fontSize: 14,
     whiteSpace: "nowrap",
     height: "fit-content",
+    display: "flex",
+    alignItems: "center",
   },
   grid: {
     maxWidth: 1100,
@@ -218,63 +254,62 @@ const styles = {
     overflow: "hidden",
     border: "1px solid rgba(255,255,255,.10)",
   },
-
   etaCard: {
     marginTop: 12,
     borderRadius: 14,
-    padding: 12,
-    border: "1px solid rgba(255,255,255,.10)",
-    background: "rgba(255,255,255,.04)",
+    padding: 16,
+    border: "1px solid",
+    transition: "all 0.3s",
   },
-  etaTitle: { fontSize: 13, color: "#9fb0d0", marginBottom: 6 },
-  etaValue: { fontSize: 22, fontWeight: 800 },
+  etaTitle: { fontSize: 13, color: "#9fb0d0", marginBottom: 8, fontWeight: 600 },
+  etaRow: { display: "flex", alignItems: "center", gap: 16, marginBottom: 6 },
+  etaValue: { fontSize: 28, fontWeight: 900, color: "#4ade80" },
+  etaDistance: { fontSize: 13, color: "#9fb0d0" },
   etaValueMuted: { fontSize: 13, color: "#9fb0d0" },
-
+  etaSubtext: {
+    fontSize: 12,
+    color: "#4ade80",
+    marginTop: 6,
+    fontWeight: 600,
+  },
   typeGrid: {
     display: "grid",
     gridTemplateColumns: "1fr",
     gap: 10,
-    margin: "10px 0 14px",
+    margin: "12px 0 14px",
   },
   typeBtn: {
     textAlign: "left",
-    border: "1px solid rgba(255,255,255,.10)",
-    background: "rgba(255,255,255,.04)",
     color: "#e8eefc",
     borderRadius: 14,
-    padding: 12,
+    padding: 14,
     cursor: "pointer",
-  },
-  typeBtnActive: {
-    outline: "2px solid rgba(225,29,72,.65)",
-    background: "rgba(225,29,72,.12)",
+    transition: "all 0.2s",
   },
   typeTop: { display: "flex", alignItems: "center", gap: 10, marginBottom: 6 },
-  typeIcon: { fontSize: 20 },
-  typeTitle: { fontWeight: 700 },
+  typeIcon: { fontSize: 22 },
+  typeTitle: { fontWeight: 700, fontSize: 15 },
   typeDesc: { color: "#9fb0d0", fontSize: 13 },
-
   banner: {
     borderRadius: 12,
-    padding: "10px 12px",
+    padding: "10px 14px",
     border: "1px solid rgba(255,255,255,.10)",
     marginBottom: 12,
     fontSize: 14,
+    fontWeight: 600,
   },
-  bannerInfo: { background: "rgba(59,130,246,.12)" },
-  bannerSuccess: { background: "rgba(34,197,94,.12)" },
-  bannerError: { background: "rgba(225,29,72,.12)" },
-
+  bannerInfo: { background: "rgba(59,130,246,.12)", color: "#93c5fd" },
+  bannerSuccess: { background: "rgba(34,197,94,.12)", color: "#4ade80" },
+  bannerError: { background: "rgba(225,29,72,.12)", color: "#fb7185" },
   dangerBtn: {
     width: "100%",
     border: "none",
     borderRadius: 14,
-    background: "#e11d48",
     color: "white",
-    padding: "14px 16px",
-    fontWeight: 800,
-    letterSpacing: ".5px",
-    cursor: "pointer",
+    padding: "16px 16px",
+    fontWeight: 900,
+    letterSpacing: "1px",
+    fontSize: 15,
+    transition: "all 0.2s",
   },
-  dangerBtnDisabled: { opacity: 0.7, cursor: "not-allowed" },
 };

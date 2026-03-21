@@ -31,7 +31,7 @@ export default function CitizenPage() {
         setStatus({ state: "sending", msg: "Sending emergency request…" });
 
         axios
-          .post("http://localhost:5000/emergency/request", {
+          .post("${import.meta.env.VITE_API_URL}/emergency/request", {
             lat: pos.coords.latitude,
             lng: pos.coords.longitude,
             emergencyType: type,

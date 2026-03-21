@@ -7,8 +7,8 @@ export default function AdminPage() {
   const [requests, setRequests] = useState([]);
 
   useEffect(() => {
-    axios.get("http://localhost:5000/vehicle").then(res => setVehicles(res.data));
-    axios.get("http://localhost:5000/emergency").then(res => setRequests(res.data));
+    axios.get("${import.meta.env.VITE_API_URL}/vehicle").then(res => setVehicles(res.data));
+    axios.get("${import.meta.env.VITE_API_URL}/emergency").then(res => setRequests(res.data));
   }, []);
 
   if (!vehicles.length) return (
@@ -30,7 +30,7 @@ export default function AdminPage() {
   const typeIcons = { Ambulance: "🚑", "Fire Truck": "🚒", "Police Car": "🚓", "Rescue Jeep": "🚙" };
 
   const updateRequest = (id, status) => {
-    axios.put(`http://localhost:5000/emergency/${id}`, { status })
+    axios.put(`${import.meta.env.VITE_API_URL}/emergency/${id}`, { status })
       .then(res => setRequests(prev => prev.map(r => r.id === id ? res.data : r)));
   };
 

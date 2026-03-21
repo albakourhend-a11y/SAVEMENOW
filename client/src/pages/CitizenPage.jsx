@@ -31,7 +31,7 @@ export default function CitizenPage() {
         setStatus({ state: "sending", msg: "Sending emergency request…" });
 
         axios
-          .post("${import.meta.env.VITE_API_URL}/emergency/request", {
+          .post(`${import.meta.env.VITE_API_URL}/emergency/request`, {
             lat: pos.coords.latitude,
             lng: pos.coords.longitude,
             emergencyType: type,
@@ -41,7 +41,7 @@ export default function CitizenPage() {
             const dist = res?.data?.distance;
             if (Number.isFinite(eta)) setEtaMinutes(eta);
             if (dist) setDistance(dist);
-            setStatus({ state: "success", msg: `Request sent! Help is on the way.` });
+            setStatus({ state: "success", msg: "Request sent! Help is on the way." });
           })
           .catch(() => {
             setStatus({
@@ -313,3 +313,6 @@ const styles = {
     transition: "all 0.2s",
   },
 };
+
+
+

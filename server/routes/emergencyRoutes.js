@@ -13,12 +13,44 @@ const speedMap = {
 
 // Temporary in-memory emergency requests list
 let requests = [
-  { id: 1, caller: "John Doe", location: "Main Street", type: "Fire", time: new Date(), status: "Pending" }
+  {
+    id: 1,
+    caller: "John Doe",
+    location: "Main Street",
+    type: "Fire",
+    lat: 33.8938,
+    lng: 35.5018,
+    time: new Date(),
+    status: "Pending"
+  }
 ];
 
 // Create new emergency request and assign nearest vehicle
 router.post("/request", (req, res) => {
   const { lat, lng, emergencyType, caller, location } = req.body;
+
+  // 1) Prevent duplicate active requests
+  const duplicate = requests.find((r) => {
+    const active =
+      r.status === "Pending" || r.status === "IN_PROGRESS";
+
+    const sameType = r.type === emergencyType;
+
+    // only check distance if stored lat/lng exist
+    const closeEnough =
+      typeof r.lat === "number" &&
+      typeof r.lng === "number" &&
+      getDistance(lat, lng, r.lat, r.lng) < 0.2; // 0.2 km = 200 meters
+
+    return active && sameType && closeEnough;
+  });
+
+  if (duplicate) {
+    return res.status(409).json({
+      message: "Duplicate emergency request already exists",
+      request: duplicate,
+    });
+  }
 
   const available = vehicles.filter(v => v.status === "FREE");
   console.log("Available vehicles:", available.length, "| All vehicles:", vehicles.map(v => v.status));
@@ -42,12 +74,15 @@ router.post("/request", (req, res) => {
 
   const newRequest = {
     id: requests.length + 1,
-    caller,
-    location,
+    caller: caller || "Unknown caller",
+    location: location || "Current GPS location",
     type: emergencyType,
+    lat,
+    lng,
     time: new Date(),
     status: "Pending"
   };
+
   requests.push(newRequest);
 
   const speedKmH = speedMap[nearest.type] || 60;
@@ -60,7 +95,7 @@ router.post("/request", (req, res) => {
     etaMinutes: etaMinutes,
     distance: `${minDist.toFixed(2)} km`,
   });
-}); // ← THIS WAS MISSING ✅
+});
 
 // Get all emergency requests
 router.get("/", (req, res) => {
@@ -72,6 +107,7 @@ router.put("/:id", (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
   const request = requests.find(r => r.id == id);
+
   if (request) {
     request.status = status;
     res.json(request);

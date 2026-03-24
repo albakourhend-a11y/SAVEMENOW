@@ -43,12 +43,19 @@ export default function CitizenPage() {
             if (dist) setDistance(dist);
             setStatus({ state: "success", msg: "Request sent! Help is on the way." });
           })
-          .catch(() => {
-            setStatus({
-              state: "error",
-              msg: "Couldn't send request. Is the backend running on port 5000?",
+          .catch((err) => {
+            if (err?.response?.status === 409) {
+              setStatus({
+                  state: "error",
+                  msg: "A similar emergency request is already active. Please wait for the assigned team.",
+                });
+              } else {
+                setStatus({
+                  state: "error",
+                  msg: "Couldn't send request. Is the backend running on port 5000?",
+                });
+              }
             });
-          });
       },
       (err) => {
         setStatus({

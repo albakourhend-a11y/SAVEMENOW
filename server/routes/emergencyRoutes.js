@@ -11,6 +11,13 @@ const speedMap = {
   "Rescue Jeep": 60,
 };
 
+// Higher number = higher priority
+const severityMap = {
+  "Medical": 3,
+  "Fire": 2,
+  "Police": 1,
+};
+
 // Temporary in-memory emergency requests list
 let requests = [
   {
@@ -21,7 +28,8 @@ let requests = [
     lat: 33.8938,
     lng: 35.5018,
     time: new Date(),
-    status: "Pending"
+    status: "Pending",
+    priority: severityMap["Fire"],
   }
 ];
 
@@ -29,18 +37,17 @@ let requests = [
 router.post("/request", (req, res) => {
   const { lat, lng, emergencyType, caller, location } = req.body;
 
-  // 1) Prevent duplicate active requests
+  // Prevent duplicate active requests
   const duplicate = requests.find((r) => {
     const active =
       r.status === "Pending" || r.status === "IN_PROGRESS";
 
     const sameType = r.type === emergencyType;
 
-    // only check distance if stored lat/lng exist
     const closeEnough =
       typeof r.lat === "number" &&
       typeof r.lng === "number" &&
-      getDistance(lat, lng, r.lat, r.lng) < 0.2; // 0.2 km = 200 meters
+      getDistance(lat, lng, r.lat, r.lng) < 0.2; // 200 meters
 
     return active && sameType && closeEnough;
   });
@@ -52,8 +59,13 @@ router.post("/request", (req, res) => {
     });
   }
 
-  const available = vehicles.filter(v => v.status === "FREE");
-  console.log("Available vehicles:", available.length, "| All vehicles:", vehicles.map(v => v.status));
+  const available = vehicles.filter((v) => v.status === "FREE");
+  console.log(
+    "Available vehicles:",
+    available.length,
+    "| All vehicles:",
+    vehicles.map((v) => v.status)
+  );
 
   if (!available.length) {
     return res.status(400).json({ message: "No vehicles available" });
@@ -62,7 +74,7 @@ router.post("/request", (req, res) => {
   let nearest = available[0];
   let minDist = getDistance(lat, lng, nearest.lat, nearest.lng);
 
-  available.forEach(v => {
+  available.forEach((v) => {
     const d = getDistance(lat, lng, v.lat, v.lng);
     if (d < minDist) {
       minDist = d;
@@ -80,7 +92,8 @@ router.post("/request", (req, res) => {
     lat,
     lng,
     time: new Date(),
-    status: "Pending"
+    status: "Pending",
+    priority: severityMap[emergencyType] || 1,
   };
 
   requests.push(newRequest);
@@ -92,21 +105,28 @@ router.post("/request", (req, res) => {
     message: "Emergency assigned",
     vehicle: nearest,
     request: newRequest,
-    etaMinutes: etaMinutes,
+    etaMinutes,
     distance: `${minDist.toFixed(2)} km`,
   });
 });
 
-// Get all emergency requests
+// Get all emergency requests sorted by priority (highest first)
 router.get("/", (req, res) => {
-  res.json(requests);
+  const sortedRequests = [...requests].sort((a, b) => {
+    if (b.priority !== a.priority) {
+      return b.priority - a.priority;
+    }
+    return new Date(b.time) - new Date(a.time);
+  });
+
+  res.json(sortedRequests);
 });
 
 // Update request status
 router.put("/:id", (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
-  const request = requests.find(r => r.id == id);
+  const request = requests.find((r) => r.id == id);
 
   if (request) {
     request.status = status;

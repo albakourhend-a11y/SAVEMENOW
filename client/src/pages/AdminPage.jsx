@@ -92,9 +92,11 @@ export default function AdminPage() {
               {requests.map(r => (
                 <div key={r.id} style={styles.requestCard}>
                   <div style={styles.requestTop}>
-                    <span style={styles.requestType}>{r.type}</span>
-                    <span style={styles.statusPill}>{r.status}</span>
-                  </div>
+                    <span style={styles.requestType}>
+                      {r.type} (Priority: {r.priority})
+                      </span>
+                      <span style={styles.statusPill}>{r.status}</span>
+                      </div>
                   <p style={styles.requestInfo}>{r.location} - {r.caller}</p>
                   <div style={styles.actionRow}>
                     <button style={styles.btnWarning} onClick={() => updateRequest(r.id, "IN_PROGRESS")}>Mark In Progress</button>

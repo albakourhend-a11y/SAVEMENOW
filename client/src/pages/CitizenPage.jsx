@@ -13,6 +13,8 @@ export default function CitizenPage() {
   const [status, setStatus] = useState({ state: "idle", msg: "" });
   const [etaMinutes, setEtaMinutes] = useState(null);
   const [distance, setDistance] = useState(null);
+  const [vehicleRoute, setVehicleRoute] = useState([]);
+  const [vehicleLocation, setVehicleLocation] = useState(null);
 
   const selected = useMemo(
     () => EMERGENCY_TYPES.find((t) => t.key === type),
@@ -24,6 +26,8 @@ export default function CitizenPage() {
   const sendEmergency = () => {
     setEtaMinutes(null);
     setDistance(null);
+    setVehicleRoute([]);
+    setVehicleLocation(null);
     setStatus({ state: "locating", msg: "Getting your location…" });
 
     navigator.geolocation.getCurrentPosition(
@@ -39,30 +43,37 @@ export default function CitizenPage() {
           .then((res) => {
             const eta = res?.data?.etaMinutes;
             const dist = res?.data?.distance;
+            const route = res?.data?.route;
+            const vehicleCoords = res?.data?.vehicleLocation;
+
             if (Number.isFinite(eta)) setEtaMinutes(eta);
             if (dist) setDistance(dist);
+            if (Array.isArray(route)) setVehicleRoute(route);
+            if (vehicleCoords) setVehicleLocation(vehicleCoords);
+
             setStatus({ state: "success", msg: "Request sent! Help is on the way." });
           })
           .catch((err) => {
             if (err?.response?.status === 409) {
               setStatus({
-                  state: "error",
-                  msg: "A similar emergency request is already active. Please wait for the assigned team.",
-                });
-              } else {
-                setStatus({
-                  state: "error",
-                  msg: "Couldn't send request. Is the backend running on port 5000?",
-                });
-              }
-            });
+                state: "error",
+                msg: "A similar emergency request is already active. Please wait for the assigned team.",
+              });
+            } else {
+              setStatus({
+                state: "error",
+                msg: "Couldn't send request. Is the backend running on port 5000?",
+              });
+            }
+          });
       },
       (err) => {
         setStatus({
           state: "error",
-          msg: err.code === 1
-            ? "Location permission denied. Enable it and try again."
-            : "Couldn't get your location. Try again.",
+          msg:
+            err.code === 1
+              ? "Location permission denied. Enable it and try again."
+              : "Couldn't get your location. Try again.",
         });
       },
       { enableHighAccuracy: true, timeout: 10000 }
@@ -93,15 +104,26 @@ export default function CitizenPage() {
           <p style={styles.muted}>Your GPS location is used to dispatch the nearest vehicle.</p>
 
           <div style={styles.mapWrap}>
-            <Map />
+            <Map route={vehicleRoute} vehicleLocation={vehicleLocation} />
           </div>
 
+          {vehicleRoute.length > 0 && (
+            <div style={styles.routeCard}>
+              <div style={styles.routeTitle}>🗺️ Emergency Vehicle Route</div>
+              <div style={styles.routeText}>
+                The full route of the assigned emergency vehicle is now displayed on the map.
+              </div>
+            </div>
+          )}
+
           {/* ETA Card */}
-          <div style={{
-            ...styles.etaCard,
-            borderColor: etaMinutes !== null ? "rgba(34,197,94,.4)" : "rgba(255,255,255,.10)",
-            background: etaMinutes !== null ? "rgba(34,197,94,.08)" : "rgba(255,255,255,.04)",
-          }}>
+          <div
+            style={{
+              ...styles.etaCard,
+              borderColor: etaMinutes !== null ? "rgba(34,197,94,.4)" : "rgba(255,255,255,.10)",
+              background: etaMinutes !== null ? "rgba(34,197,94,.08)" : "rgba(255,255,255,.04)",
+            }}
+          >
             <div style={styles.etaTitle}>🕐 Estimated Arrival (ETA)</div>
             {etaMinutes === null ? (
               <div style={styles.etaValueMuted}>
@@ -114,9 +136,7 @@ export default function CitizenPage() {
                 <div style={styles.etaValue}>
                   ~{etaMinutes} min{etaMinutes === 1 ? "" : "s"}
                 </div>
-                {distance && (
-                  <div style={styles.etaDistance}>📍 {distance} away</div>
-                )}
+                {distance && <div style={styles.etaDistance}>📍 {distance} away</div>}
               </div>
             )}
             {etaMinutes !== null && (
@@ -160,12 +180,16 @@ export default function CitizenPage() {
           </div>
 
           {status.state !== "idle" && (
-            <div style={{
-              ...styles.banner,
-              ...(status.state === "success" ? styles.bannerSuccess
-                : status.state === "error" ? styles.bannerError
-                : styles.bannerInfo),
-            }}>
+            <div
+              style={{
+                ...styles.banner,
+                ...(status.state === "success"
+                  ? styles.bannerSuccess
+                  : status.state === "error"
+                    ? styles.bannerError
+                    : styles.bannerInfo),
+              }}
+            >
               {status.state === "locating" && "📡 "}
               {status.state === "sending" && "📤 "}
               {status.state === "success" && "✅ "}
@@ -185,9 +209,11 @@ export default function CitizenPage() {
               opacity: disabled ? 0.7 : 1,
             }}
           >
-            {status.state === "locating" ? "📡 LOCATING…"
-              : status.state === "sending" ? "📤 SENDING…"
-              : "🆘 REQUEST HELP"}
+            {status.state === "locating"
+              ? "📡 LOCATING…"
+              : status.state === "sending"
+                ? "📤 SENDING…"
+                : "🆘 REQUEST HELP"}
           </button>
 
           <p style={{ ...styles.muted, fontSize: 12, marginTop: 10, textAlign: "center" }}>
@@ -261,6 +287,23 @@ const styles = {
     overflow: "hidden",
     border: "1px solid rgba(255,255,255,.10)",
   },
+  routeCard: {
+    marginTop: 12,
+    borderRadius: 14,
+    padding: 14,
+    border: "1px solid rgba(59,130,246,.25)",
+    background: "rgba(59,130,246,.08)",
+  },
+  routeTitle: {
+    fontSize: 13,
+    color: "#93c5fd",
+    marginBottom: 6,
+    fontWeight: 700,
+  },
+  routeText: {
+    fontSize: 13,
+    color: "#cbd5e1",
+  },
   etaCard: {
     marginTop: 12,
     borderRadius: 14,
@@ -320,6 +363,3 @@ const styles = {
     transition: "all 0.2s",
   },
 };
-
-
-

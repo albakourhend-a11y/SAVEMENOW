@@ -5,9 +5,9 @@ const getDistance = require("../utils/distance");
 const router = express.Router();
 
 const speedMap = {
-  "Ambulance": 60,
-  "Fire Truck": 50,
-  "Police Car": 70,
+  "Ambulance":   60,
+  "Fire Truck":  50,
+  "Police Car":  70,
   "Rescue Jeep": 60,
 };
 
@@ -21,27 +21,52 @@ let requests = [
     lat: 33.8938,
     lng: 35.5018,
     time: new Date(),
-    status: "Pending"
-  }
+    status: "Pending",
+  },
 ];
 
-// Create new emergency request and assign nearest vehicle
-router.post("/request", (req, res) => {
+// ── OSRM real road routing (free, no API key) ─────────────────────────────────
+async function getRoadETA(lat1, lng1, lat2, lng2) {
+  try {
+    // OSRM uses longitude,latitude order
+    const url = `http://router.project-osrm.org/route/v1/driving/${lng1},${lat1};${lng2},${lat2}?overview=false`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    const data = await res.json();
+
+    if (data.code === "Ok" && data.routes?.length > 0) {
+      const durationSec = data.routes[0].duration;   // seconds
+      const distanceKm  = data.routes[0].distance / 1000; // km
+      return {
+        etaMinutes: Math.ceil(durationSec / 60),
+        distanceKm: distanceKm.toFixed(2),
+        source: "OSRM",
+      };
+    }
+  } catch (err) {
+    console.warn("⚠️  OSRM unavailable, falling back to straight-line ETA:", err.message);
+  }
+
+  // Fallback: straight-line Haversine + average speed
+  const dist = getDistance(lat1, lng1, lat2, lng2);
+  return {
+    etaMinutes: Math.ceil((dist / 60) * 60),
+    distanceKm: dist.toFixed(2),
+    source: "Haversine",
+  };
+}
+
+// POST /emergency/request — create new emergency & assign nearest vehicle
+router.post("/request", async (req, res) => {
   const { lat, lng, emergencyType, caller, location } = req.body;
 
-  // 1) Prevent duplicate active requests
+  // 1) Prevent duplicate active requests (same type + within 200m)
   const duplicate = requests.find((r) => {
-    const active =
-      r.status === "Pending" || r.status === "IN_PROGRESS";
-
+    const active = r.status === "Pending" || r.status === "IN_PROGRESS";
     const sameType = r.type === emergencyType;
-
-    // only check distance if stored lat/lng exist
     const closeEnough =
       typeof r.lat === "number" &&
       typeof r.lng === "number" &&
-      getDistance(lat, lng, r.lat, r.lng) < 0.2; // 0.2 km = 200 meters
-
+      getDistance(lat, lng, r.lat, r.lng) < 0.2;
     return active && sameType && closeEnough;
   });
 
@@ -52,68 +77,62 @@ router.post("/request", (req, res) => {
     });
   }
 
-  const available = vehicles.filter(v => v.status === "FREE");
-  console.log("Available vehicles:", available.length, "| All vehicles:", vehicles.map(v => v.status));
+  // 2) Only assign FREE vehicles (BUSY and UNAVAILABLE are excluded)
+  const available = vehicles.filter((v) => v.status === "FREE");
 
   if (!available.length) {
     return res.status(400).json({ message: "No vehicles available" });
   }
 
+  // 3) Find nearest vehicle using straight-line distance
   let nearest = available[0];
   let minDist = getDistance(lat, lng, nearest.lat, nearest.lng);
 
-  available.forEach(v => {
+  available.forEach((v) => {
     const d = getDistance(lat, lng, v.lat, v.lng);
-    if (d < minDist) {
-      minDist = d;
-      nearest = v;
-    }
+    if (d < minDist) { minDist = d; nearest = v; }
   });
 
   nearest.status = "BUSY";
 
   const newRequest = {
     id: requests.length + 1,
-    caller: caller || "Unknown caller",
+    caller:   caller   || "Unknown caller",
     location: location || "Current GPS location",
-    type: emergencyType,
+    type:     emergencyType,
     lat,
     lng,
-    time: new Date(),
-    status: "Pending"
+    time:   new Date(),
+    status: "Pending",
   };
 
   requests.push(newRequest);
 
-  const speedKmH = speedMap[nearest.type] || 60;
-  const etaMinutes = Math.ceil((minDist / speedKmH) * 60);
+  // 4) Get real road ETA via OSRM (falls back to Haversine if offline)
+  const eta = await getRoadETA(lat, lng, nearest.lat, nearest.lng);
 
   res.json({
-    message: "Emergency assigned",
-    vehicle: nearest,
-    request: newRequest,
-    etaMinutes: etaMinutes,
-    distance: `${minDist.toFixed(2)} km`,
+    message:    "Emergency assigned",
+    vehicle:    nearest,
+    request:    newRequest,
+    etaMinutes: eta.etaMinutes,
+    distance:   `${eta.distanceKm} km`,
+    etaSource:  eta.source,   // "OSRM" or "Haversine"
   });
 });
 
-// Get all emergency requests
+// GET /emergency — list all requests
 router.get("/", (req, res) => {
   res.json(requests);
 });
 
-// Update request status
+// PUT /emergency/:id — update status
 router.put("/:id", (req, res) => {
-  const { id } = req.params;
-  const { status } = req.body;
-  const request = requests.find(r => r.id == id);
+  const request = requests.find((r) => r.id == req.params.id);
+  if (!request) return res.status(404).json({ error: "Request not found" });
 
-  if (request) {
-    request.status = status;
-    res.json(request);
-  } else {
-    res.status(404).json({ error: "Request not found" });
-  }
+  request.status = req.body.status;
+  res.json(request);
 });
 
 module.exports = router;

@@ -41,6 +41,21 @@ export default function DriverPage() {
     load();
   }, []);
 
+  // ── Heartbeat: ping server every 15s so vehicle stays ACTIVE ─────────────
+  useEffect(() => {
+    const sendHeartbeat = async () => {
+      try {
+        await axios.patch(`${API}/vehicle/${vehicleId}/heartbeat`);
+      } catch (e) {
+        // silently ignore — server may be temporarily unreachable
+      }
+    };
+
+    sendHeartbeat(); // send immediately on mount
+    const interval = setInterval(sendHeartbeat, 15_000);
+    return () => clearInterval(interval); // cleanup on unmount
+  }, []);
+
   const assignedRequest = useMemo(() => {
     const pending = requests.filter((r) => {
       const s = String(r.status || "").toUpperCase();

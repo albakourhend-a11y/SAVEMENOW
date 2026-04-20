@@ -1,10 +1,21 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import RoleSelect from "./pages/RoleSelect";
 import RegisterPage from "./pages/RegisterPage";
 import LoginPage from "./pages/LoginPage";
 import CitizenPage from "./pages/CitizenPage";
 import DriverPage from "./pages/DriverPage";
 import AdminPage from "./pages/AdminPage";
+import ChatBot from "./components/ChatBot";
+
+const PROTECTED_PATHS = ["/citizen", "/driver", "/admin"];
+
+function ChatBotOverlay() {
+  const location = useLocation();
+  const role = localStorage.getItem("role");
+  const token = localStorage.getItem("token");
+  if (!token || !PROTECTED_PATHS.includes(location.pathname)) return null;
+  return <ChatBot role={role} />;
+}
 
 function ProtectedRoute({ children, allowedRole }) {
   const token = localStorage.getItem("token");
@@ -45,6 +56,7 @@ export default function App() {
         {/* Catch all */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
+      <ChatBotOverlay />
     </BrowserRouter>
   );
 }

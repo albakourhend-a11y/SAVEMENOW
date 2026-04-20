@@ -85,11 +85,11 @@ export default function AdminPage() {
         </section>
         <section style={styles.card}>
           <h2 style={styles.sectionTitle}>Emergency Requests Queue</h2>
-          {requests.length === 0 ? (
-            <div style={styles.emptyState}><p style={{ color: "#9fb0d0" }}>No requests yet.</p></div>
+          {requests.filter(r => r.status !== "RESOLVED" && r.status !== "REJECTED").length === 0 ? (
+            <div style={styles.emptyState}><p style={{ color: "#9fb0d0" }}>No active requests.</p></div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {requests.map(r => (
+              {requests.filter(r => r.status !== "RESOLVED" && r.status !== "REJECTED").map(r => (
                 <div key={r.id} style={styles.requestCard}>
                   <div style={styles.requestTop}>
                     <span style={styles.requestType}>{r.type}</span>

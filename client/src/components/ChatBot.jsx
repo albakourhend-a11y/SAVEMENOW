@@ -70,83 +70,32 @@ function injectCSS() {
 /* ─── Role helpers ───────────────────────────────────────────────────────── */
 const ROLE_LABELS = { citizen: "Citizen Mode", driver: "Responder Mode", admin: "Admin Mode" };
 const WELCOME_TEXT = {
-  citizen: "I can guide you through emergencies, provide first aid tips, and help you stay safe while help is on the way.",
-  driver:  "I can assist with emergency protocols, response guidance, and best practices for handling incidents.",
-  admin:   "I can help you manage resources, prioritize emergencies, and understand system status.",
+  citizen: "Hey there! 💙 I'm Sama, your emergency assistant. I'm here to help you stay calm and safe. Ask me anything — first aid tips, what to do in an emergency, or anything else!",
+  driver:  "Hey! 💪 I'm Sama, your on-duty assistant. Need quick guidance on a situation? Ask away — I've got your back!",
+  admin:   "Hi there! 📊 I'm Sama, your system assistant. Need help managing resources or understanding system status? Just ask!",
 };
 
-/* ─── Inline style helpers (all as plain objects) ────────────────────────── */
+/* ─── Inline styles ──────────────────────────────────────────────────────── */
 const s = {
-  header: {
-    background: "linear-gradient(135deg,#cc0000,#ff4444)",
-    padding: "13px 14px",
-    display: "flex", alignItems: "center", justifyContent: "space-between",
-    gap: 8, flexShrink: 0,
-  },
+  header: { background: "linear-gradient(135deg,#cc0000,#ff4444)", padding: "13px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexShrink: 0 },
   headerLeft:  { display: "flex", alignItems: "center", gap: 10 },
   avatar:      { fontSize: 20, width: 34, height: 34, borderRadius: "50%", background: "rgba(255,255,255,.2)", display: "flex", alignItems: "center", justifyContent: "center" },
   headerTitle: { color: "#fff", fontWeight: 700, fontSize: 14, lineHeight: 1.2 },
   headerSub:   { color: "rgba(255,255,255,.8)", fontSize: 11 },
   iconBtn:     { background: "transparent", border: "none", color: "rgba(255,255,255,.8)", cursor: "pointer", fontSize: 16, padding: "3px 5px", borderRadius: 4 },
-
-  messages: {
-    flex: 1, overflowY: "auto", padding: "14px 12px",
-    display: "flex", flexDirection: "column", gap: 10,
-  },
-  welcome: { textAlign: "center", padding: "18px 12px", color: "#888", fontSize: 13, lineHeight: 1.6 },
+  messages:    { flex: 1, overflowY: "auto", padding: "14px 12px", display: "flex", flexDirection: "column", gap: 10 },
+  welcome:     { textAlign: "center", padding: "18px 12px", color: "#888", fontSize: 13, lineHeight: 1.6 },
   welcomeIcon: { fontSize: 30, marginBottom: 6 },
-  welcomeTitle: { color: "#ddd", display: "block", fontWeight: 700, marginBottom: 6, fontSize: 14 },
-
-  rowUser:      { display: "flex", justifyContent: "flex-end" },
-  rowAssistant: { display: "flex", justifyContent: "flex-start" },
-
-  bubbleUser: {
-    maxWidth: "80%", padding: "9px 13px",
-    borderRadius: "16px 16px 4px 16px",
-    background: "linear-gradient(135deg,#cc0000,#ff4444)",
-    color: "#fff", fontSize: 13, lineHeight: 1.5,
-    wordBreak: "break-word", whiteSpace: "pre-wrap",
-  },
-  bubbleAssistant: {
-    maxWidth: "80%", padding: "9px 13px",
-    borderRadius: "16px 16px 16px 4px",
-    background: "#2a2a2a", border: "1px solid #3a3a3a",
-    color: "#eee", fontSize: 13, lineHeight: 1.5,
-    wordBreak: "break-word", whiteSpace: "pre-wrap",
-  },
-
-  typingDot: (delay) => ({
-    display: "inline-block", width: 7, height: 7, borderRadius: "50%",
-    background: "#888", margin: "0 2px",
-    animation: `smChatBounce 1.2s infinite ${delay}`,
-  }),
-
-  inputArea: {
-    borderTop: "1px solid #2a2a2a", padding: "10px 12px",
-    display: "flex", gap: 8, alignItems: "flex-end", background: "#1a1a1a", flexShrink: 0,
-  },
-  textarea: {
-    flex: 1, background: "#2a2a2a", border: "1px solid #3a3a3a",
-    borderRadius: 12, color: "#fff", padding: "9px 12px",
-    fontSize: 13, resize: "none", outline: "none",
-    fontFamily: "Arial,sans-serif", lineHeight: 1.4,
-    maxHeight: 90, overflowY: "auto",
-  },
-  sendBtn: (disabled) => ({
-    width: 36, height: 36, borderRadius: "50%", flexShrink: 0,
-    background: disabled ? "#444" : "linear-gradient(135deg,#cc0000,#ff4444)",
-    border: "none", cursor: disabled ? "not-allowed" : "pointer",
-    display: "flex", alignItems: "center", justifyContent: "center",
-    fontSize: 15, color: "#fff",
-    transition: "background .2s",
-  }),
-
-  badge: {
-    position: "absolute", top: -3, right: -3,
-    background: "#ff9800", color: "#fff", borderRadius: "50%",
-    width: 16, height: 16, fontSize: 10, fontWeight: "bold",
-    display: "flex", alignItems: "center", justifyContent: "center",
-  },
+  welcomeTitle:{ color: "#ddd", display: "block", fontWeight: 700, marginBottom: 6, fontSize: 14 },
+  rowUser:     { display: "flex", justifyContent: "flex-end" },
+  rowBot:      { display: "flex", justifyContent: "flex-start" },
+  bubbleUser:  { maxWidth: "80%", padding: "9px 13px", borderRadius: "16px 16px 4px 16px", background: "linear-gradient(135deg,#cc0000,#ff4444)", color: "#fff", fontSize: 13, lineHeight: 1.5, wordBreak: "break-word", whiteSpace: "pre-wrap" },
+  bubbleBot:   { maxWidth: "80%", padding: "9px 13px", borderRadius: "16px 16px 16px 4px", background: "#2a2a2a", border: "1px solid #3a3a3a", color: "#eee", fontSize: 13, lineHeight: 1.5, wordBreak: "break-word", whiteSpace: "pre-wrap" },
+  dot: (d)  => ({ display: "inline-block", width: 7, height: 7, borderRadius: "50%", background: "#888", margin: "0 2px", animation: `smChatBounce 1.2s infinite ${d}` }),
+  inputArea:   { borderTop: "1px solid #2a2a2a", padding: "10px 12px", display: "flex", gap: 8, alignItems: "flex-end", background: "#1a1a1a", flexShrink: 0 },
+  textarea:    { flex: 1, background: "#2a2a2a", border: "1px solid #3a3a3a", borderRadius: 12, color: "#fff", padding: "9px 12px", fontSize: 13, resize: "none", outline: "none", fontFamily: "Arial,sans-serif", lineHeight: 1.4, maxHeight: 90, overflowY: "auto" },
+  sendBtn: (d) => ({ width: 36, height: 36, borderRadius: "50%", flexShrink: 0, background: d ? "#444" : "linear-gradient(135deg,#cc0000,#ff4444)", border: "none", cursor: d ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, color: "#fff" }),
+  badge:       { position: "absolute", top: -3, right: -3, background: "#ff9800", color: "#fff", borderRadius: "50%", width: 16, height: 16, fontSize: 10, fontWeight: "bold", display: "flex", alignItems: "center", justifyContent: "center" },
 };
 
 /* ─── Component ──────────────────────────────────────────────────────────── */
@@ -166,126 +115,86 @@ export default function ChatBot({ role }) {
   }, [msgs, loading]);
 
   useEffect(() => {
-    if (open) {
-      setUnread(0);
-      setTimeout(() => inputRef.current?.focus(), 80);
-    }
+    if (open) { setUnread(0); setTimeout(() => inputRef.current?.focus(), 80); }
   }, [open]);
 
   const send = async () => {
     const text = input.trim();
     if (!text || loading) return;
-
     const next = [...msgs, { role: "user", content: text }];
     setMsgs(next);
     setInput("");
     setLoading(true);
-
     try {
-      const { data } = await axios.post(`${BASE_URL}/chat`, {
-        messages: next,
-        role: role || "default",
-      });
+      const { data } = await axios.post(`${BASE_URL}/chat`, { messages: next, role: role || "default" });
       setMsgs((p) => [...p, { role: "assistant", content: data.reply }]);
       if (!open) setUnread((n) => n + 1);
     } catch {
-      setMsgs((p) => [
-        ...p,
-        { role: "assistant", content: "⚠️ Couldn't reach the AI right now. Try again, or call emergency services directly if this is urgent." },
-      ]);
+      setMsgs((p) => [...p, { role: "assistant", content: "⚠️ Couldn't reach the AI right now. Please try again." }]);
     } finally {
       setLoading(false);
     }
   };
 
-  const onKey = (e) => {
-    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
-  };
-
+  const onKey = (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } };
   const canSend = input.trim().length > 0 && !loading;
 
-  /* Portal renders directly into document.body — no stacking context issues */
   return createPortal(
     <>
-      {/* ── Chat window ── */}
       {open && (
         <div id="sm-chat-window">
-          {/* Header */}
           <div style={s.header}>
             <div style={s.headerLeft}>
               <div style={s.avatar}>🚨</div>
               <div>
-                <div style={s.headerTitle}>SAVEMENOW Assistant</div>
-                <div style={s.headerSub}>{ROLE_LABELS[role] || "Emergency Help"} · AI Powered</div>
+                <div style={s.headerTitle}>Sama 🌟 — SAVEMENOW Assistant</div>
+                <div style={s.headerSub}>{ROLE_LABELS[role] || "Emergency Help"} · Always here for you</div>
               </div>
             </div>
             <div style={{ display: "flex", gap: 4 }}>
-              {msgs.length > 0 && (
-                <button style={s.iconBtn} title="Clear chat" onClick={() => setMsgs([])}>🗑</button>
-              )}
-              <button style={s.iconBtn} title="Close" onClick={() => setOpen(false)}>✕</button>
+              {msgs.length > 0 && <button style={s.iconBtn} onClick={() => setMsgs([])} title="Clear">🗑</button>}
+              <button style={s.iconBtn} onClick={() => setOpen(false)} title="Close">✕</button>
             </div>
           </div>
 
-          {/* Messages */}
           <div id="sm-chat-messages" style={s.messages}>
             {msgs.length === 0 && (
               <div style={s.welcome}>
                 <div style={s.welcomeIcon}>🛡️</div>
                 <strong style={s.welcomeTitle}>How can I help?</strong>
-                {WELCOME_TEXT[role] || "Ask me anything about emergency procedures or how to use SAVEMENOW."}
+                {WELCOME_TEXT[role] || "Ask me anything about emergency procedures or SAVEMENOW."}
               </div>
             )}
-
             {msgs.map((m, i) => (
-              <div key={i} style={m.role === "user" ? s.rowUser : s.rowAssistant}>
-                <div style={m.role === "user" ? s.bubbleUser : s.bubbleAssistant}>
-                  {m.content}
-                </div>
+              <div key={i} style={m.role === "user" ? s.rowUser : s.rowBot}>
+                <div style={m.role === "user" ? s.bubbleUser : s.bubbleBot}>{m.content}</div>
               </div>
             ))}
-
             {loading && (
-              <div style={s.rowAssistant}>
-                <div style={{ ...s.bubbleAssistant, padding: "11px 14px" }}>
-                  <span style={s.typingDot("0s")} />
-                  <span style={s.typingDot("0.2s")} />
-                  <span style={s.typingDot("0.4s")} />
+              <div style={s.rowBot}>
+                <div style={{ ...s.bubbleBot, padding: "11px 14px" }}>
+                  <span style={s.dot("0s")} /><span style={s.dot("0.2s")} /><span style={s.dot("0.4s")} />
                 </div>
               </div>
             )}
             <div ref={bottomRef} />
           </div>
 
-          {/* Input */}
           <div style={s.inputArea}>
-            <textarea
-              ref={inputRef}
-              style={s.textarea}
-              rows={1}
+            <textarea ref={inputRef} style={s.textarea} rows={1}
               placeholder="Type a message… (Enter to send)"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={onKey}
+              value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={onKey}
             />
-            <button style={s.sendBtn(!canSend)} onClick={send} disabled={!canSend} title="Send">
-              ➤
-            </button>
+            <button style={s.sendBtn(!canSend)} onClick={send} disabled={!canSend}>➤</button>
           </div>
         </div>
       )}
 
-      {/* ── Floating bubble ── */}
-      <button
-        id="sm-chat-bubble"
-        onClick={() => setOpen((o) => !o)}
-        title="Chat with AI Assistant"
-        style={{ position: "relative" }}
-      >
+      <button id="sm-chat-bubble" onClick={() => setOpen((o) => !o)} style={{ position: "relative" }}>
         {open ? "✕" : "💬"}
         {!open && unread > 0 && <span style={s.badge}>{unread}</span>}
       </button>
     </>,
-    document.body          // ← rendered straight into <body>, bypasses ALL z-index traps
+    document.body
   );
 }

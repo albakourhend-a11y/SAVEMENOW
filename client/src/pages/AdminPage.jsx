@@ -33,6 +33,12 @@ export default function AdminPage() {
       .then(res => setRequests(prev => prev.map(r => r.id === id ? res.data : r)));
   };
 
+  const overrideVehicleStatus = (id, newStatus) => {
+    axios.patch(`${API}/vehicle/${id}/status`, { status: newStatus })
+      .then(res => setVehicles(prev => prev.map(v => v.id === id ? res.data : v)))
+      .catch(() => {});
+  };
+
   const reassign = (requestId) => {
     if (!selectedVehicle) return;
     axios.patch(`${API}/emergency/${requestId}/reassign`, { vehicleId: Number(selectedVehicle) })
@@ -90,14 +96,27 @@ export default function AdminPage() {
                   <span style={{ fontSize: 20 }}>{typeIcons[v.type] || "🚘"}</span>
                   <span style={{ fontWeight: 700, fontSize: 15 }}>{v.type}</span>
                 </div>
-                <span style={{
-                  ...styles.statusPill,
-                  background: v.status === "FREE" ? "rgba(34,197,94,.15)" : "rgba(225,29,72,.15)",
-                  color: v.status === "FREE" ? "#4ade80" : "#fb7185",
-                  border: v.status === "FREE" ? "1px solid rgba(34,197,94,.3)" : "1px solid rgba(225,29,72,.3)",
-                }}>
-                  {v.status === "FREE" ? "Available" : "Busy"}
-                </span>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{
+                    ...styles.statusPill,
+                    background: v.status === "FREE" ? "rgba(34,197,94,.15)" : "rgba(225,29,72,.15)",
+                    color: v.status === "FREE" ? "#4ade80" : "#fb7185",
+                    border: v.status === "FREE" ? "1px solid rgba(34,197,94,.3)" : "1px solid rgba(225,29,72,.3)",
+                  }}>
+                    {v.status === "FREE" ? "Available" : "Busy"}
+                  </span>
+                  <button
+                    style={{
+                      ...styles.btnOverride,
+                      background: v.status === "FREE" ? "rgba(225,29,72,.12)" : "rgba(34,197,94,.12)",
+                      border: v.status === "FREE" ? "1px solid rgba(225,29,72,.3)" : "1px solid rgba(34,197,94,.3)",
+                      color: v.status === "FREE" ? "#fb7185" : "#4ade80",
+                    }}
+                    onClick={() => overrideVehicleStatus(v.id, v.status === "FREE" ? "BUSY" : "FREE")}
+                  >
+                    {v.status === "FREE" ? "Force Busy" : "Force Free"}
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -218,4 +237,5 @@ const styles = {
   select: { flex: 1, background: "#0b1220", border: "1px solid rgba(255,255,255,.15)", color: "#e8eefc", borderRadius: 8, padding: "8px 10px", fontSize: 13 },
   btnConfirm: { background: "rgba(124,58,237,.20)", border: "1px solid rgba(124,58,237,.4)", color: "#a78bfa", borderRadius: 8, padding: "8px 14px", fontWeight: 700, fontSize: 13, cursor: "pointer" },
   logRow: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", borderRadius: 10, background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.06)" },
+  btnOverride: { borderRadius: 7, padding: "5px 10px", fontWeight: 700, fontSize: 11, cursor: "pointer", letterSpacing: 0.5 },
 };

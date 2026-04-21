@@ -9,8 +9,13 @@ export default function AdminPage() {
   const [requests, setRequests] = useState([]);
 
   useEffect(() => {
-    axios.get(`${API}/vehicle`).then(res => setVehicles(res.data));
-    axios.get(`${API}/emergency`).then(res => setRequests(res.data));
+    const fetchAll = () => {
+      axios.get(`${API}/vehicle`).then(res => setVehicles(res.data)).catch(() => {});
+      axios.get(`${API}/emergency`).then(res => setRequests(res.data)).catch(() => {});
+    };
+    fetchAll();
+    const interval = setInterval(fetchAll, 4_000);
+    return () => clearInterval(interval);
   }, []);
 
   const markers = vehicles.map(v => ({ lat: v.lat, lng: v.lng, status: v.status, type: v.type }));

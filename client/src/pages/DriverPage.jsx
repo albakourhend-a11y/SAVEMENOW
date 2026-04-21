@@ -41,19 +41,59 @@ export default function DriverPage() {
     load();
   }, []);
 
-  // ── Heartbeat: ping server every 15s so vehicle stays ACTIVE ─────────────
+  // ── Heartbeat + GPS: ping server every 5s with current position ───────────
   useEffect(() => {
-    const sendHeartbeat = async () => {
-      try {
-        await axios.patch(`${API}/vehicle/${vehicleId}/heartbeat`);
-      } catch (e) {
-        // silently ignore — server may be temporarily unreachable
+    // Simulated Beirut route waypoints for demo (used when real GPS unavailable or static)
+    const DEMO_PATH = [
+      { lat: 33.8938, lng: 35.5018 },
+      { lat: 33.8945, lng: 35.5030 },
+      { lat: 33.8952, lng: 35.5045 },
+      { lat: 33.8960, lng: 35.5060 },
+      { lat: 33.8968, lng: 35.5075 },
+      { lat: 33.8975, lng: 35.5090 },
+      { lat: 33.8968, lng: 35.5075 },
+      { lat: 33.8960, lng: 35.5060 },
+      { lat: 33.8952, lng: 35.5045 },
+      { lat: 33.8945, lng: 35.5030 },
+    ];
+    let step = 0;
+    let lastReal = null;
+
+    const sendHeartbeat = (lat, lng) => {
+      axios.patch(`${API}/vehicle/${vehicleId}/heartbeat`, { lat, lng }).catch(() => {});
+    };
+
+    const tick = () => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const { latitude, longitude } = pos.coords;
+            // If real GPS is static (same as last reading), fall back to simulation
+            if (lastReal && Math.abs(latitude - lastReal.lat) < 0.0001 && Math.abs(longitude - lastReal.lng) < 0.0001) {
+              const pt = DEMO_PATH[step % DEMO_PATH.length];
+              step++;
+              sendHeartbeat(pt.lat, pt.lng);
+            } else {
+              lastReal = { lat: latitude, lng: longitude };
+              sendHeartbeat(latitude, longitude);
+            }
+          },
+          () => {
+            const pt = DEMO_PATH[step % DEMO_PATH.length];
+            step++;
+            sendHeartbeat(pt.lat, pt.lng);
+          }
+        );
+      } else {
+        const pt = DEMO_PATH[step % DEMO_PATH.length];
+        step++;
+        sendHeartbeat(pt.lat, pt.lng);
       }
     };
 
-    sendHeartbeat(); // send immediately on mount
-    const interval = setInterval(sendHeartbeat, 15_000);
-    return () => clearInterval(interval); // cleanup on unmount
+    tick();
+    const interval = setInterval(tick, 5_000);
+    return () => clearInterval(interval);
   }, []);
 
   const assignedRequest = useMemo(() => {

@@ -38,7 +38,7 @@ export default function Map({
 
       {markers.map((marker, index) => (
         <Marker
-          key={index}
+          key={`vehicle-${index}-${marker.lat.toFixed(5)}-${marker.lng.toFixed(5)}`}
           position={{ lat: marker.lat, lng: marker.lng }}
         />
       ))}

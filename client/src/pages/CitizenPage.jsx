@@ -15,6 +15,7 @@ export default function CitizenPage() {
   const [distance, setDistance] = useState(null);
   const [vehicleRoute, setVehicleRoute] = useState([]);
   const [vehicleLocation, setVehicleLocation] = useState(null);
+  const [manualLocation, setManualLocation] = useState("");
 
   const selected = useMemo(
     () => EMERGENCY_TYPES.find((t) => t.key === type),
@@ -39,17 +40,20 @@ export default function CitizenPage() {
             lat: pos.coords.latitude,
             lng: pos.coords.longitude,
             emergencyType: type,
+            location: manualLocation.trim() || undefined,
           })
           .then((res) => {
             const eta = res?.data?.etaMinutes;
             const dist = res?.data?.distance;
             const route = res?.data?.route;
             const vehicleCoords = res?.data?.vehicleLocation;
+            const loc = res?.data?.request?.location;
 
             if (Number.isFinite(eta)) setEtaMinutes(eta);
             if (dist) setDistance(dist);
             if (Array.isArray(route)) setVehicleRoute(route);
             if (vehicleCoords) setVehicleLocation(vehicleCoords);
+            if (loc && !manualLocation.trim()) setManualLocation(loc);
 
             setStatus({ state: "success", msg: "Request sent! Help is on the way." });
           })
@@ -102,6 +106,13 @@ export default function CitizenPage() {
         <section style={styles.card}>
           <h2 style={styles.h2}>📍 Your Location</h2>
           <p style={styles.muted}>Your GPS location is used to dispatch the nearest vehicle.</p>
+          <input
+            type="text"
+            placeholder="📍 Confirm or type your location (e.g. Hamra Street, Beirut)"
+            value={manualLocation}
+            onChange={e => setManualLocation(e.target.value)}
+            style={styles.locationInput}
+          />
 
           <div style={styles.mapWrap}>
             <Map route={vehicleRoute} vehicleLocation={vehicleLocation} />
@@ -280,6 +291,18 @@ const styles = {
     borderRadius: 16,
     padding: 16,
     boxShadow: "0 10px 30px rgba(0,0,0,.25)",
+  },
+  locationInput: {
+    width: "100%",
+    marginTop: 10,
+    background: "#0b1220",
+    border: "1px solid rgba(255,255,255,.15)",
+    borderRadius: 10,
+    color: "#e8eefc",
+    padding: "10px 14px",
+    fontSize: 13,
+    outline: "none",
+    boxSizing: "border-box",
   },
   mapWrap: {
     marginTop: 10,

@@ -96,12 +96,16 @@ export default function DriverPage() {
     return () => clearInterval(interval);
   }, []);
 
-  const assignedRequest = useMemo(() => {
-    const pending = requests.filter((r) => {
+  const assignedRequests = useMemo(() => {
+    const mine = requests.filter((r) => {
       const s = String(r.status || "").toUpperCase();
-      return s !== "RESOLVED" && s !== "REJECTED";
+      const active = s !== "RESOLVED" && s !== "REJECTED";
+      const isMyVehicle = r.vehicleId === vehicleId || r.vehicleId == null;
+      return active && isMyVehicle;
     });
-    return pending.length ? pending[pending.length - 1] : null;
+    const inProgress = mine.find(r => String(r.status).toUpperCase() === "IN_PROGRESS");
+    if (inProgress) return [inProgress];
+    return mine.slice(0, 1);
   }, [requests]);
 
   const updateVehicleStatus = async (newStatus) => {
@@ -127,15 +131,13 @@ export default function DriverPage() {
     }
   };
 
-  const acceptEmergency = async () => {
-    if (!assignedRequest) return;
-    await updateEmergencyStatus(assignedRequest.id, "IN_PROGRESS");
+  const acceptEmergency = async (id) => {
+    await updateEmergencyStatus(id, "IN_PROGRESS");
     await updateVehicleStatus("BUSY");
   };
 
-  const rejectEmergency = async () => {
-    if (!assignedRequest) return;
-    await updateEmergencyStatus(assignedRequest.id, "REJECTED");
+  const rejectEmergency = async (id) => {
+    await updateEmergencyStatus(id, "REJECTED");
     await updateVehicleStatus("FREE");
   };
 
@@ -168,8 +170,7 @@ export default function DriverPage() {
     );
   }
 
-  const isInProgress =
-    String(assignedRequest?.status || "").toUpperCase() === "IN_PROGRESS";
+  const assignedRequest = assignedRequests[0] || null;
 
   return (
     <div style={styles.page}>
@@ -223,7 +224,7 @@ export default function DriverPage() {
       <div style={styles.section}>
         <h2 style={styles.sectionTitle}>🚨 Assigned Emergency</h2>
 
-        {!assignedRequest ? (
+        {assignedRequests.length === 0 ? (
           <div style={styles.emptyCard}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
             <p style={{ color: "#9fb0d0", fontSize: 16 }}>
@@ -231,79 +232,56 @@ export default function DriverPage() {
             </p>
           </div>
         ) : (
-          <div style={{
-            ...styles.emergencyCard,
-            borderColor: isInProgress
-              ? "rgba(34,197,94,.4)"
-              : "rgba(225,29,72,.4)",
-            background: isInProgress
-              ? "rgba(34,197,94,.06)"
-              : "rgba(225,29,72,.06)",
-          }}>
-            {/* Alert banner */}
-            {!isInProgress && (
-              <div style={styles.alertBanner}>
-                🚨 NEW EMERGENCY — RESPONSE REQUIRED
-              </div>
-            )}
-
-            <div style={styles.emergencyGrid}>
-              <div style={styles.emergencyItem}>
-                <span style={styles.emergencyLabel}>Type</span>
-                <span style={styles.emergencyValue}>
-                  {typeIcons[assignedRequest.type] || typeIcons.default}{" "}
-                  {assignedRequest.type}
-                </span>
-              </div>
-              <div style={styles.emergencyItem}>
-                <span style={styles.emergencyLabel}>Location</span>
-                <span style={styles.emergencyValue}>
-                  📍 {assignedRequest.location || "Unknown"}
-                </span>
-              </div>
-              <div style={styles.emergencyItem}>
-                <span style={styles.emergencyLabel}>Caller</span>
-                <span style={styles.emergencyValue}>
-                  👤 {assignedRequest.caller || "Anonymous"}
-                </span>
-              </div>
-              <div style={styles.emergencyItem}>
-                <span style={styles.emergencyLabel}>Status</span>
-                <span style={{
-                  ...styles.statusPill,
-                  background: isInProgress
-                    ? "rgba(34,197,94,.15)"
-                    : "rgba(251,191,36,.15)",
-                  color: isInProgress ? "#4ade80" : "#fbbf24",
-                  border: isInProgress
-                    ? "1px solid rgba(34,197,94,.3)"
-                    : "1px solid rgba(251,191,36,.3)",
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {assignedRequests.map((r) => {
+              const inProgress = String(r.status || "").toUpperCase() === "IN_PROGRESS";
+              return (
+                <div key={r.id} style={{
+                  ...styles.emergencyCard,
+                  borderColor: inProgress ? "rgba(34,197,94,.4)" : "rgba(225,29,72,.4)",
+                  background: inProgress ? "rgba(34,197,94,.06)" : "rgba(225,29,72,.06)",
                 }}>
-                  {assignedRequest.status}
-                </span>
-              </div>
-            </div>
-
-            {isInProgress ? (
-              <div style={styles.enRoute}>
-                ✅ Accepted — en route to location
-              </div>
-            ) : (
-              <div style={styles.actionRow}>
-                <button
-                  onClick={acceptEmergency}
-                  style={styles.acceptBtn}
-                >
-                  ✅ Accept & Respond
-                </button>
-                <button
-                  onClick={rejectEmergency}
-                  style={styles.rejectBtn}
-                >
-                  ❌ Reject
-                </button>
-              </div>
-            )}
+                  {!inProgress && (
+                    <div style={styles.alertBanner}>
+                      🚨 NEW EMERGENCY — RESPONSE REQUIRED
+                    </div>
+                  )}
+                  <div style={styles.emergencyGrid}>
+                    <div style={styles.emergencyItem}>
+                      <span style={styles.emergencyLabel}>Type</span>
+                      <span style={styles.emergencyValue}>
+                        {typeIcons[r.type] || typeIcons.default} {r.type}
+                      </span>
+                    </div>
+                    <div style={styles.emergencyItem}>
+                      <span style={styles.emergencyLabel}>Location</span>
+                      <span style={styles.emergencyValue}>📍 {r.location || "Unknown"}</span>
+                    </div>
+                    <div style={styles.emergencyItem}>
+                      <span style={styles.emergencyLabel}>Caller</span>
+                      <span style={styles.emergencyValue}>👤 {r.caller || "Anonymous"}</span>
+                    </div>
+                    <div style={styles.emergencyItem}>
+                      <span style={styles.emergencyLabel}>Status</span>
+                      <span style={{
+                        ...styles.statusPill,
+                        background: inProgress ? "rgba(34,197,94,.15)" : "rgba(251,191,36,.15)",
+                        color: inProgress ? "#4ade80" : "#fbbf24",
+                        border: inProgress ? "1px solid rgba(34,197,94,.3)" : "1px solid rgba(251,191,36,.3)",
+                      }}>{r.status}</span>
+                    </div>
+                  </div>
+                  {inProgress ? (
+                    <div style={styles.enRoute}>✅ Accepted — en route to location</div>
+                  ) : (
+                    <div style={styles.actionRow}>
+                      <button onClick={() => acceptEmergency(r.id)} style={styles.acceptBtn}>✅ Accept & Respond</button>
+                      <button onClick={() => rejectEmergency(r.id)} style={styles.rejectBtn}>❌ Reject</button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

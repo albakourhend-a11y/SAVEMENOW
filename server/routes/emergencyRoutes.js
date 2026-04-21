@@ -25,6 +25,24 @@ let requests = [
   },
 ];
 
+// ── Reverse geocode lat/lng → human-readable address via Nominatim ────────────
+async function reverseGeocode(lat, lng) {
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`;
+    const res = await fetch(url, {
+      signal: AbortSignal.timeout(6000),
+      headers: { "User-Agent": "SAVEMENOW-emergency-app" },
+    });
+    const data = await res.json();
+    const a = data.address || {};
+    const name = a.road || a.neighbourhood || a.suburb || a.city_district || data.display_name?.split(",")[0];
+    if (name) return name;
+  } catch (err) {
+    console.warn("Reverse geocode failed:", err.message);
+  }
+  return `${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E`;
+}
+
 // ── OSRM real road routing (free, no API key) ─────────────────────────────────
 async function getRoadETA(lat1, lng1, lat2, lng2) {
   try {
@@ -96,11 +114,12 @@ router.post("/request", async (req, res) => {
   nearest.status = "BUSY";
 
   const severityMap = { Fire: "Critical", Medical: "High", Police: "Medium" };
+  const resolvedLocation = location || await reverseGeocode(lat, lng);
 
   const newRequest = {
     id:        requests.length + 1,
     caller:    caller   || "Unknown caller",
-    location:  location || "Current GPS location",
+    location:  resolvedLocation,
     type:      emergencyType,
     severity:  severityMap[emergencyType] || "Medium",
     lat,

@@ -143,11 +143,11 @@ export default function CitizenPage() {
         </div>
       </header>
 
-      {myRequests.length > 0 && (
+      {myRequests.filter(r => { const s = String(r.status || "").toUpperCase(); return s !== "RESOLVED" && s !== "REJECTED"; }).length > 0 && (
         <div style={styles.historySection}>
-          <h2 style={{ ...styles.h2, marginBottom: 12 }}>📋 My Requests</h2>
+          <h2 style={{ ...styles.h2, marginBottom: 12 }}>📋 My Active Requests</h2>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {myRequests.map(r => {
+            {myRequests.filter(r => { const s = String(r.status || "").toUpperCase(); return s !== "RESOLVED" && s !== "REJECTED"; }).map(r => {
               const s = String(r.status || "").toUpperCase();
               const color = s === "RESOLVED" ? "#4ade80" : s === "IN_PROGRESS" ? "#38bdf8" : s === "REJECTED" ? "#fb7185" : "#fbbf24";
               const bg = s === "RESOLVED" ? "rgba(34,197,94,.10)" : s === "IN_PROGRESS" ? "rgba(14,165,233,.10)" : s === "REJECTED" ? "rgba(225,29,72,.10)" : "rgba(251,191,36,.10)";

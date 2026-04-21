@@ -24,7 +24,7 @@ export default function DriverPage() {
       try {
         const [vehRes, reqRes] = await Promise.all([
           axios.get(`${API}/vehicle`),
-          axios.get(`${API}/emergency`),
+          axios.get(`${API}/emergency/all`),
         ]);
         const v = vehRes.data.find((v) => v.id === vehicleId);
         setVehicle(v);

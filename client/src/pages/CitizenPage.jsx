@@ -1,5 +1,5 @@
 import Map from "../components/Map";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 
 const EMERGENCY_TYPES = [
@@ -16,11 +16,35 @@ export default function CitizenPage() {
   const [vehicleRoute, setVehicleRoute] = useState([]);
   const [vehicleLocation, setVehicleLocation] = useState(null);
   const [manualLocation, setManualLocation] = useState("");
+  const [requestId, setRequestId] = useState(null);
+  const [requestStatus, setRequestStatus] = useState(null);
+  const prevStatusRef = useRef(null);
 
   const selected = useMemo(
     () => EMERGENCY_TYPES.find((t) => t.key === type),
     [type]
   );
+
+  // ── Poll request status every 5s and notify citizen of changes ──────────
+  useEffect(() => {
+    if (!requestId) return;
+    const poll = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await axios.get(`${import.meta.env.VITE_API_URL}/emergency`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        });
+        const req = res.data.find(r => r._id === requestId || r.id === requestId);
+        if (!req) return;
+        if (req.status !== prevStatusRef.current) {
+          prevStatusRef.current = req.status;
+          setRequestStatus(req.status);
+        }
+      } catch {}
+    };
+    const interval = setInterval(poll, 5_000);
+    return () => clearInterval(interval);
+  }, [requestId]);
 
   const disabled = status.state === "locating" || status.state === "sending";
 
@@ -35,13 +59,14 @@ export default function CitizenPage() {
       (pos) => {
         setStatus({ state: "sending", msg: "Sending emergency request…" });
 
+        const token = localStorage.getItem("token");
         axios
           .post(`${import.meta.env.VITE_API_URL}/emergency/request`, {
             lat: pos.coords.latitude,
             lng: pos.coords.longitude,
             emergencyType: type,
             location: manualLocation.trim() || undefined,
-          })
+          }, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
           .then((res) => {
             const eta = res?.data?.etaMinutes;
             const dist = res?.data?.distance;
@@ -54,6 +79,7 @@ export default function CitizenPage() {
             if (Array.isArray(route)) setVehicleRoute(route);
             if (vehicleCoords) setVehicleLocation(vehicleCoords);
             if (loc && !manualLocation.trim()) setManualLocation(loc);
+            if (res?.data?.request?._id) setRequestId(res.data.request._id);
 
             setStatus({ state: "success", msg: "Request sent! Help is on the way." });
           })
@@ -191,21 +217,25 @@ export default function CitizenPage() {
           </div>
 
           {status.state !== "idle" && (
-            <div
-              style={{
-                ...styles.banner,
-                ...(status.state === "success"
-                  ? styles.bannerSuccess
-                  : status.state === "error"
-                    ? styles.bannerError
-                    : styles.bannerInfo),
-              }}
-            >
+            <div style={{ ...styles.banner, ...(status.state === "success" ? styles.bannerSuccess : status.state === "error" ? styles.bannerError : styles.bannerInfo) }}>
               {status.state === "locating" && "📡 "}
               {status.state === "sending" && "📤 "}
               {status.state === "success" && "✅ "}
               {status.state === "error" && "❌ "}
               {status.msg}
+            </div>
+          )}
+
+          {requestStatus && requestStatus !== "Pending" && (
+            <div style={{
+              ...styles.banner,
+              background: requestStatus === "RESOLVED" ? "rgba(34,197,94,.15)" : requestStatus === "IN_PROGRESS" ? "rgba(14,165,233,.15)" : "rgba(225,29,72,.15)",
+              color: requestStatus === "RESOLVED" ? "#4ade80" : requestStatus === "IN_PROGRESS" ? "#38bdf8" : "#fb7185",
+              border: `1px solid ${requestStatus === "RESOLVED" ? "rgba(34,197,94,.3)" : requestStatus === "IN_PROGRESS" ? "rgba(14,165,233,.3)" : "rgba(225,29,72,.3)"}`,
+            }}>
+              {requestStatus === "IN_PROGRESS" && "🚨 Help is on the way — vehicle is en route!"}
+              {requestStatus === "RESOLVED" && "✅ Emergency resolved. Stay safe!"}
+              {requestStatus === "REJECTED" && "❌ Request was rejected. Please call 112."}
             </div>
           )}
 

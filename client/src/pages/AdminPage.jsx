@@ -4,6 +4,13 @@ import Map from "../components/Map";
 
 const API = import.meta.env.VITE_API_URL;
 
+function timeAgo(dateStr) {
+  const diff = Math.floor((Date.now() - new Date(dateStr)) / 1000);
+  if (diff < 60) return `${diff}s ago`;
+  if (diff < 3600) return `${Math.floor(diff / 60)} min ago`;
+  return `${Math.floor(diff / 3600)}h ago`;
+}
+
 function SeverityBadge({ severity, severityStyle, statusPill }) {
   if (!severity) return null;
   const s = severityStyle[severity] || severityStyle.Medium;
@@ -25,7 +32,7 @@ export default function AdminPage() {
   useEffect(() => {
     const fetchAll = () => {
       axios.get(`${API}/vehicle`).then(res => setVehicles(res.data)).catch(() => {});
-      axios.get(`${API}/emergency`).then(res => setRequests(res.data)).catch(() => {});
+      axios.get(`${API}/emergency/all`).then(res => setRequests(res.data)).catch(() => {});
     };
     fetchAll();
     const interval = setInterval(fetchAll, 4_000);
@@ -153,6 +160,11 @@ export default function AdminPage() {
                     </div>
                   </div>
                   <p style={styles.requestInfo}>{r.location} - {r.caller}</p>
+                  {r.time && (
+                    <p style={{ color: "#6b7fa3", fontSize: 11, margin: "-8px 0 10px 0" }}>
+                      🕐 {timeAgo(r.time)}
+                    </p>
+                  )}
                   <div style={styles.actionRow}>
                     <button style={styles.btnWarning} onClick={() => updateRequest(r.id, "IN_PROGRESS")}>Mark In Progress</button>
                     <button style={styles.btnSuccess} onClick={() => updateRequest(r.id, "RESOLVED")}>Resolve</button>

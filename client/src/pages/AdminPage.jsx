@@ -7,6 +7,8 @@ const API = import.meta.env.VITE_API_URL;
 export default function AdminPage() {
   const [vehicles, setVehicles] = useState([]);
   const [requests, setRequests] = useState([]);
+  const [reassignId, setReassignId] = useState(null);
+  const [selectedVehicle, setSelectedVehicle] = useState("");
 
   useEffect(() => {
     const fetchAll = () => {
@@ -28,6 +30,17 @@ export default function AdminPage() {
   const updateRequest = (id, status) => {
     axios.put(`${API}/emergency/${id}`, { status })
       .then(res => setRequests(prev => prev.map(r => r.id === id ? res.data : r)));
+  };
+
+  const reassign = (requestId) => {
+    if (!selectedVehicle) return;
+    axios.patch(`${API}/emergency/${requestId}/reassign`, { vehicleId: Number(selectedVehicle) })
+      .then(res => {
+        setRequests(prev => prev.map(r => r.id === requestId ? res.data.request : r));
+        setReassignId(null);
+        setSelectedVehicle("");
+      })
+      .catch(err => alert(err.response?.data?.error || "Reassign failed"));
   };
 
   if (!vehicles.length) return (
@@ -104,7 +117,25 @@ export default function AdminPage() {
                   <div style={styles.actionRow}>
                     <button style={styles.btnWarning} onClick={() => updateRequest(r.id, "IN_PROGRESS")}>Mark In Progress</button>
                     <button style={styles.btnSuccess} onClick={() => updateRequest(r.id, "RESOLVED")}>Resolve</button>
+                    <button style={styles.btnReassign} onClick={() => { setReassignId(reassignId === r.id ? null : r.id); setSelectedVehicle(""); }}>
+                      🔄 Reassign
+                    </button>
                   </div>
+                  {reassignId === r.id && (
+                    <div style={styles.reassignBox}>
+                      <select
+                        value={selectedVehicle}
+                        onChange={e => setSelectedVehicle(e.target.value)}
+                        style={styles.select}
+                      >
+                        <option value="">Select a vehicle...</option>
+                        {vehicles.filter(v => v.status === "FREE").map(v => (
+                          <option key={v.id} value={v.id}>{typeIcons[v.type] || "🚘"} {v.type} (#{v.id})</option>
+                        ))}
+                      </select>
+                      <button style={styles.btnConfirm} onClick={() => reassign(r.id)}>Confirm</button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -141,4 +172,8 @@ const styles = {
   actionRow: { display: "flex", gap: 10 },
   btnWarning: { background: "rgba(251,191,36,.15)", border: "1px solid rgba(251,191,36,.3)", color: "#fbbf24", borderRadius: 8, padding: "8px 14px", fontWeight: 700, fontSize: 13, cursor: "pointer" },
   btnSuccess: { background: "rgba(34,197,94,.15)", border: "1px solid rgba(34,197,94,.3)", color: "#4ade80", borderRadius: 8, padding: "8px 14px", fontWeight: 700, fontSize: 13, cursor: "pointer" },
+  btnReassign: { background: "rgba(14,165,233,.15)", border: "1px solid rgba(14,165,233,.3)", color: "#38bdf8", borderRadius: 8, padding: "8px 14px", fontWeight: 700, fontSize: 13, cursor: "pointer" },
+  reassignBox: { marginTop: 10, display: "flex", gap: 8, alignItems: "center" },
+  select: { flex: 1, background: "#0b1220", border: "1px solid rgba(255,255,255,.15)", color: "#e8eefc", borderRadius: 8, padding: "8px 10px", fontSize: 13 },
+  btnConfirm: { background: "rgba(124,58,237,.20)", border: "1px solid rgba(124,58,237,.4)", color: "#a78bfa", borderRadius: 8, padding: "8px 14px", fontWeight: 700, fontSize: 13, cursor: "pointer" },
 };

@@ -96,14 +96,15 @@ router.post("/request", async (req, res) => {
   nearest.status = "BUSY";
 
   const newRequest = {
-    id: requests.length + 1,
-    caller:   caller   || "Unknown caller",
-    location: location || "Current GPS location",
-    type:     emergencyType,
+    id:        requests.length + 1,
+    caller:    caller   || "Unknown caller",
+    location:  location || "Current GPS location",
+    type:      emergencyType,
     lat,
     lng,
-    time:   new Date(),
-    status: "Pending",
+    time:      new Date(),
+    status:    "Pending",
+    vehicleId: nearest.id,
   };
 
   requests.push(newRequest);
@@ -133,6 +134,26 @@ router.put("/:id", (req, res) => {
 
   request.status = req.body.status;
   res.json(request);
+});
+
+// PATCH /emergency/:id/reassign — reassign to a different vehicle
+router.patch("/:id/reassign", (req, res) => {
+  const request = requests.find((r) => r.id == req.params.id);
+  if (!request) return res.status(404).json({ error: "Request not found" });
+
+  const newVehicle = vehicles.find((v) => v.id == req.body.vehicleId);
+  if (!newVehicle) return res.status(404).json({ error: "Vehicle not found" });
+  if (newVehicle.status !== "FREE") return res.status(400).json({ error: "Vehicle is not available" });
+
+  // Free the old vehicle
+  const oldVehicle = vehicles.find((v) => v.id === request.vehicleId);
+  if (oldVehicle) oldVehicle.status = "FREE";
+
+  // Assign the new vehicle
+  newVehicle.status = "BUSY";
+  request.vehicleId = newVehicle.id;
+
+  res.json({ request, vehicle: newVehicle });
 });
 
 module.exports = router;

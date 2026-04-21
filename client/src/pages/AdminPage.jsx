@@ -4,16 +4,35 @@ import Map from "../components/Map";
 
 const API = import.meta.env.VITE_API_URL;
 
+function timeAgo(dateStr) {
+  const diff = Math.floor((Date.now() - new Date(dateStr)) / 1000);
+  if (diff < 60) return `${diff}s ago`;
+  if (diff < 3600) return `${Math.floor(diff / 60)} min ago`;
+  return `${Math.floor(diff / 3600)}h ago`;
+}
+
+function SeverityBadge({ severity, severityStyle, statusPill }) {
+  if (!severity) return null;
+  const s = severityStyle[severity] || severityStyle.Medium;
+  const icon = severity === "Critical" ? "🔴" : severity === "High" ? "🟠" : "🟡";
+  return (
+    <span style={{ ...statusPill, background: s.bg, color: s.color, border: `1px solid ${s.border}` }}>
+      {icon} {severity}
+    </span>
+  );
+}
+
 export default function AdminPage() {
   const [vehicles, setVehicles] = useState([]);
   const [requests, setRequests] = useState([]);
   const [reassignId, setReassignId] = useState(null);
   const [selectedVehicle, setSelectedVehicle] = useState("");
+  const [logOpen, setLogOpen] = useState(false);
 
   useEffect(() => {
     const fetchAll = () => {
       axios.get(`${API}/vehicle`).then(res => setVehicles(res.data)).catch(() => {});
-      axios.get(`${API}/emergency`).then(res => setRequests(res.data)).catch(() => {});
+      axios.get(`${API}/emergency/all`).then(res => setRequests(res.data)).catch(() => {});
     };
     fetchAll();
     const interval = setInterval(fetchAll, 4_000);
@@ -26,17 +45,28 @@ export default function AdminPage() {
   const pendingCount = requests.filter(r => r.status === "Pending").length;
   const inProgressCount = requests.filter(r => r.status === "IN_PROGRESS").length;
   const typeIcons = { Ambulance: "🚑", "Fire Truck": "🚒", "Police Car": "🚓", "Rescue Jeep": "🚙" };
+  const severityStyle = {
+    Critical: { bg: "rgba(225,29,72,.20)", color: "#fb7185", border: "rgba(225,29,72,.4)" },
+    High:     { bg: "rgba(249,115,22,.20)", color: "#fb923c", border: "rgba(249,115,22,.4)" },
+    Medium:   { bg: "rgba(251,191,36,.20)", color: "#fbbf24", border: "rgba(251,191,36,.4)" },
+  };
 
   const updateRequest = (id, status) => {
     axios.put(`${API}/emergency/${id}`, { status })
-      .then(res => setRequests(prev => prev.map(r => r.id === id ? res.data : r)));
+      .then(res => setRequests(prev => prev.map(r => String(r._id) === String(id) ? res.data : r)));
+  };
+
+  const overrideVehicleStatus = (id, newStatus) => {
+    axios.patch(`${API}/vehicle/${id}/status`, { status: newStatus })
+      .then(res => setVehicles(prev => prev.map(v => v.id === id ? res.data : v)))
+      .catch(() => {});
   };
 
   const reassign = (requestId) => {
     if (!selectedVehicle) return;
     axios.patch(`${API}/emergency/${requestId}/reassign`, { vehicleId: Number(selectedVehicle) })
       .then(res => {
-        setRequests(prev => prev.map(r => r.id === requestId ? res.data.request : r));
+        setRequests(prev => prev.map(r => String(r._id) === String(requestId) ? res.data.request : r));
         setReassignId(null);
         setSelectedVehicle("");
       })
@@ -89,14 +119,27 @@ export default function AdminPage() {
                   <span style={{ fontSize: 20 }}>{typeIcons[v.type] || "🚘"}</span>
                   <span style={{ fontWeight: 700, fontSize: 15 }}>{v.type}</span>
                 </div>
-                <span style={{
-                  ...styles.statusPill,
-                  background: v.status === "FREE" ? "rgba(34,197,94,.15)" : "rgba(225,29,72,.15)",
-                  color: v.status === "FREE" ? "#4ade80" : "#fb7185",
-                  border: v.status === "FREE" ? "1px solid rgba(34,197,94,.3)" : "1px solid rgba(225,29,72,.3)",
-                }}>
-                  {v.status === "FREE" ? "Available" : "Busy"}
-                </span>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{
+                    ...styles.statusPill,
+                    background: v.status === "FREE" ? "rgba(34,197,94,.15)" : "rgba(225,29,72,.15)",
+                    color: v.status === "FREE" ? "#4ade80" : "#fb7185",
+                    border: v.status === "FREE" ? "1px solid rgba(34,197,94,.3)" : "1px solid rgba(225,29,72,.3)",
+                  }}>
+                    {v.status === "FREE" ? "Available" : "Busy"}
+                  </span>
+                  <button
+                    style={{
+                      ...styles.btnOverride,
+                      background: v.status === "FREE" ? "rgba(225,29,72,.12)" : "rgba(34,197,94,.12)",
+                      border: v.status === "FREE" ? "1px solid rgba(225,29,72,.3)" : "1px solid rgba(34,197,94,.3)",
+                      color: v.status === "FREE" ? "#fb7185" : "#4ade80",
+                    }}
+                    onClick={() => overrideVehicleStatus(v.id, v.status === "FREE" ? "BUSY" : "FREE")}
+                  >
+                    {v.status === "FREE" ? "Force Busy" : "Force Free"}
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -108,20 +151,28 @@ export default function AdminPage() {
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {requests.filter(r => r.status !== "RESOLVED" && r.status !== "REJECTED").map(r => (
-                <div key={r.id} style={styles.requestCard}>
+                <div key={r._id} style={styles.requestCard}>
                   <div style={styles.requestTop}>
                     <span style={styles.requestType}>{r.type}</span>
-                    <span style={styles.statusPill}>{r.status}</span>
+                    <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                      <SeverityBadge severity={r.severity} severityStyle={severityStyle} statusPill={styles.statusPill} />
+                      <span style={styles.statusPill}>{r.status}</span>
+                    </div>
                   </div>
                   <p style={styles.requestInfo}>{r.location} - {r.caller}</p>
+                  {(r.createdAt || r.time) && (
+                    <p style={{ color: "#6b7fa3", fontSize: 11, margin: "-8px 0 10px 0" }}>
+                      🕐 {timeAgo(r.createdAt || r.time)}
+                    </p>
+                  )}
                   <div style={styles.actionRow}>
-                    <button style={styles.btnWarning} onClick={() => updateRequest(r.id, "IN_PROGRESS")}>Mark In Progress</button>
-                    <button style={styles.btnSuccess} onClick={() => updateRequest(r.id, "RESOLVED")}>Resolve</button>
-                    <button style={styles.btnReassign} onClick={() => { setReassignId(reassignId === r.id ? null : r.id); setSelectedVehicle(""); }}>
+                    <button style={styles.btnWarning} onClick={() => updateRequest(r._id, "IN_PROGRESS")}>Mark In Progress</button>
+                    <button style={styles.btnSuccess} onClick={() => updateRequest(r._id, "RESOLVED")}>Resolve</button>
+                    <button style={styles.btnReassign} onClick={() => { setReassignId(reassignId === r._id ? null : r._id); setSelectedVehicle(""); }}>
                       🔄 Reassign
                     </button>
                   </div>
-                  {reassignId === r.id && (
+                  {reassignId === r._id && (
                     <div style={styles.reassignBox}>
                       <select
                         value={selectedVehicle}
@@ -133,7 +184,7 @@ export default function AdminPage() {
                           <option key={v.id} value={v.id}>{typeIcons[v.type] || "🚘"} {v.type} (#{v.id})</option>
                         ))}
                       </select>
-                      <button style={styles.btnConfirm} onClick={() => reassign(r.id)}>Confirm</button>
+                      <button style={styles.btnConfirm} onClick={() => reassign(r._id)}>Confirm</button>
                     </div>
                   )}
                 </div>
@@ -142,6 +193,46 @@ export default function AdminPage() {
           )}
         </section>
       </div>
+
+      {/* Incident Log */}
+      <section style={{ ...styles.card, marginTop: 0 }}>
+        <div
+          style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}
+          onClick={() => setLogOpen(o => !o)}
+        >
+          <h2 style={{ ...styles.sectionTitle, margin: 0 }}>📋 Incident Log</h2>
+          <span style={{ color: "#9fb0d0", fontSize: 13 }}>
+            {requests.filter(r => r.status === "RESOLVED" || r.status === "REJECTED").length} closed &nbsp;
+            {logOpen ? "▲ Hide" : "▼ Show"}
+          </span>
+        </div>
+
+        {logOpen && (
+          <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
+            {requests.filter(r => r.status === "RESOLVED" || r.status === "REJECTED").length === 0 ? (
+              <p style={{ color: "#9fb0d0", fontSize: 13 }}>No closed incidents yet.</p>
+            ) : (
+              requests.filter(r => r.status === "RESOLVED" || r.status === "REJECTED").map(r => (
+                <div key={r._id} style={styles.logRow}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{
+                      ...styles.statusPill,
+                      background: r.status === "RESOLVED" ? "rgba(34,197,94,.12)" : "rgba(225,29,72,.12)",
+                      color: r.status === "RESOLVED" ? "#4ade80" : "#fb7185",
+                      border: r.status === "RESOLVED" ? "1px solid rgba(34,197,94,.3)" : "1px solid rgba(225,29,72,.3)",
+                    }}>{r.status}</span>
+                    <span style={{ fontWeight: 700, fontSize: 14 }}>{r.type}</span>
+                    <span style={{ color: "#9fb0d0", fontSize: 13 }}>— {r.location}</span>
+                  </div>
+                  <span style={{ color: "#9fb0d0", fontSize: 12 }}>
+                    {(r.createdAt || r.time) ? new Date(r.createdAt || r.time).toLocaleString() : "—"}
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </section>
     </div>
   );
 }
@@ -176,4 +267,6 @@ const styles = {
   reassignBox: { marginTop: 10, display: "flex", gap: 8, alignItems: "center" },
   select: { flex: 1, background: "#0b1220", border: "1px solid rgba(255,255,255,.15)", color: "#e8eefc", borderRadius: 8, padding: "8px 10px", fontSize: 13 },
   btnConfirm: { background: "rgba(124,58,237,.20)", border: "1px solid rgba(124,58,237,.4)", color: "#a78bfa", borderRadius: 8, padding: "8px 14px", fontWeight: 700, fontSize: 13, cursor: "pointer" },
+  logRow: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", borderRadius: 10, background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.06)" },
+  btnOverride: { borderRadius: 7, padding: "5px 10px", fontWeight: 700, fontSize: 11, cursor: "pointer", letterSpacing: 0.5 },
 };

@@ -18,12 +18,24 @@ export default function CitizenPage() {
   const [manualLocation, setManualLocation] = useState("");
   const [requestId, setRequestId] = useState(null);
   const [requestStatus, setRequestStatus] = useState(null);
+  const [myRequests, setMyRequests] = useState([]);
   const prevStatusRef = useRef(null);
 
   const selected = useMemo(
     () => EMERGENCY_TYPES.find((t) => t.key === type),
     [type]
   );
+
+  // ── Load citizen's request history on mount ──────────────────────────────
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    axios.get(`${import.meta.env.VITE_API_URL}/emergency`, {
+      headers: { Authorization: `Bearer ${token}` }
+    }).then(res => {
+      if (Array.isArray(res.data)) setMyRequests(res.data);
+    }).catch(() => {});
+  }, []);
 
   // ── Poll request status every 5s and notify citizen of changes ──────────
   useEffect(() => {
@@ -34,7 +46,8 @@ export default function CitizenPage() {
         const res = await axios.get(`${import.meta.env.VITE_API_URL}/emergency`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {}
         });
-        const req = res.data.find(r => r._id === requestId || r.id === requestId);
+        if (Array.isArray(res.data)) setMyRequests(res.data);
+        const req = res.data.find(r => String(r._id) === String(requestId));
         if (!req) return;
         if (req.status !== prevStatusRef.current) {
           prevStatusRef.current = req.status;
@@ -79,7 +92,10 @@ export default function CitizenPage() {
             if (Array.isArray(route)) setVehicleRoute(route);
             if (vehicleCoords) setVehicleLocation(vehicleCoords);
             if (loc && !manualLocation.trim()) setManualLocation(loc);
-            if (res?.data?.request?._id) setRequestId(res.data.request._id);
+            if (res?.data?.request?._id) {
+              setRequestId(res.data.request._id);
+              setMyRequests(prev => [res.data.request, ...prev]);
+            }
 
             setStatus({ state: "success", msg: "Request sent! Help is on the way." });
           })
@@ -126,6 +142,33 @@ export default function CitizenPage() {
           <b style={{ marginLeft: 6, color: selected?.color }}>{selected?.title}</b>
         </div>
       </header>
+
+      {myRequests.filter(r => { const s = String(r.status || "").toUpperCase(); return s !== "RESOLVED" && s !== "REJECTED"; }).length > 0 && (
+        <div style={styles.historySection}>
+          <h2 style={{ ...styles.h2, marginBottom: 12 }}>📋 My Active Requests</h2>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {myRequests.filter(r => { const s = String(r.status || "").toUpperCase(); return s !== "RESOLVED" && s !== "REJECTED"; }).map(r => {
+              const s = String(r.status || "").toUpperCase();
+              const color = s === "RESOLVED" ? "#4ade80" : s === "IN_PROGRESS" ? "#38bdf8" : s === "REJECTED" ? "#fb7185" : "#fbbf24";
+              const bg = s === "RESOLVED" ? "rgba(34,197,94,.10)" : s === "IN_PROGRESS" ? "rgba(14,165,233,.10)" : s === "REJECTED" ? "rgba(225,29,72,.10)" : "rgba(251,191,36,.10)";
+              const border = s === "RESOLVED" ? "rgba(34,197,94,.25)" : s === "IN_PROGRESS" ? "rgba(14,165,233,.25)" : s === "REJECTED" ? "rgba(225,29,72,.25)" : "rgba(251,191,36,.25)";
+              return (
+                <div key={r._id} style={{ ...styles.historyCard, background: bg, border: `1px solid ${border}` }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontWeight: 700, fontSize: 14 }}>{r.type} — {r.location}</span>
+                    <span style={{ color, fontWeight: 700, fontSize: 12, background: bg, border: `1px solid ${border}`, borderRadius: 999, padding: "3px 10px" }}>{r.status}</span>
+                  </div>
+                  {r.createdAt && (
+                    <div style={{ color: "#9fb0d0", fontSize: 12, marginTop: 4 }}>
+                      {new Date(r.createdAt).toLocaleString()}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div style={styles.grid}>
         {/* Map Section */}
@@ -404,6 +447,18 @@ const styles = {
   bannerInfo: { background: "rgba(59,130,246,.12)", color: "#93c5fd" },
   bannerSuccess: { background: "rgba(34,197,94,.12)", color: "#4ade80" },
   bannerError: { background: "rgba(225,29,72,.12)", color: "#fb7185" },
+  historySection: {
+    maxWidth: 1100,
+    margin: "0 auto 16px auto",
+    border: "1px solid rgba(255,255,255,.10)",
+    background: "#111a2e",
+    borderRadius: 16,
+    padding: 16,
+  },
+  historyCard: {
+    borderRadius: 10,
+    padding: "10px 14px",
+  },
   dangerBtn: {
     width: "100%",
     border: "none",

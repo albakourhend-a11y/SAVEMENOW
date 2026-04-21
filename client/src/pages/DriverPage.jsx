@@ -120,12 +120,12 @@ export default function DriverPage() {
 
   const updateEmergencyStatus = async (id, newStatus) => {
     setRequests((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, status: newStatus } : r))
+      prev.map((r) => (String(r._id || r.id) === String(id) ? { ...r, status: newStatus } : r))
     );
     if (!serverOk || id === MOCK_EMERGENCY.id) return;
     try {
       const res = await axios.put(`${API}/emergency/${id}`, { status: newStatus });
-      setRequests((prev) => prev.map((r) => (r.id === id ? res.data : r)));
+      setRequests((prev) => prev.map((r) => (String(r._id || r.id) === String(id) ? res.data : r)));
     } catch (e) {
       console.error("Failed to update emergency status:", e);
     }
@@ -236,7 +236,7 @@ export default function DriverPage() {
             {assignedRequests.map((r) => {
               const inProgress = String(r.status || "").toUpperCase() === "IN_PROGRESS";
               return (
-                <div key={r.id} style={{
+                <div key={r._id || r.id} style={{
                   ...styles.emergencyCard,
                   borderColor: inProgress ? "rgba(34,197,94,.4)" : "rgba(225,29,72,.4)",
                   background: inProgress ? "rgba(34,197,94,.06)" : "rgba(225,29,72,.06)",
@@ -275,8 +275,8 @@ export default function DriverPage() {
                     <div style={styles.enRoute}>✅ Accepted — en route to location</div>
                   ) : (
                     <div style={styles.actionRow}>
-                      <button onClick={() => acceptEmergency(r.id)} style={styles.acceptBtn}>✅ Accept & Respond</button>
-                      <button onClick={() => rejectEmergency(r.id)} style={styles.rejectBtn}>❌ Reject</button>
+                      <button onClick={() => acceptEmergency(r._id || r.id)} style={styles.acceptBtn}>✅ Accept & Respond</button>
+                      <button onClick={() => rejectEmergency(r._id || r.id)} style={styles.rejectBtn}>❌ Reject</button>
                     </div>
                   )}
                 </div>

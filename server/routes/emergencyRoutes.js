@@ -40,13 +40,16 @@ async function reverseGeocode(lat, lng) {
 // ── OSRM real road routing ────────────────────────────────────────────────────
 async function getRoadETA(lat1, lng1, lat2, lng2) {
   try {
-    const url = `http://router.project-osrm.org/route/v1/driving/${lng1},${lat1};${lng2},${lat2}?overview=false`;
+    const url = `http://router.project-osrm.org/route/v1/driving/${lng1},${lat1};${lng2},${lat2}?overview=full&geometries=geojson`;
     const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
     const data = await res.json();
     if (data.code === "Ok" && data.routes?.length > 0) {
+      const coords = data.routes[0].geometry?.coordinates || [];
+      const route = coords.map(([lng, lat]) => ({ lat, lng }));
       return {
         etaMinutes: Math.ceil(data.routes[0].duration / 60),
         distanceKm: (data.routes[0].distance / 1000).toFixed(2),
+        route,
         source: "OSRM",
       };
     }
@@ -57,6 +60,7 @@ async function getRoadETA(lat1, lng1, lat2, lng2) {
   return {
     etaMinutes: Math.ceil((dist / 60) * 60),
     distanceKm: dist.toFixed(2),
+    route: [],
     source: "Haversine",
   };
 }
@@ -110,12 +114,14 @@ router.post("/request", async (req, res) => {
   const eta = await getRoadETA(lat, lng, nearest.lat, nearest.lng);
 
   res.json({
-    message:    "Emergency assigned",
-    vehicle:    nearest,
-    request:    newRequest,
-    etaMinutes: eta.etaMinutes,
-    distance:   `${eta.distanceKm} km`,
-    etaSource:  eta.source,
+    message:         "Emergency assigned",
+    vehicle:         nearest,
+    request:         newRequest,
+    etaMinutes:      eta.etaMinutes,
+    distance:        `${eta.distanceKm} km`,
+    etaSource:       eta.source,
+    route:           eta.route,
+    vehicleLocation: { lat: nearest.lat, lng: nearest.lng },
   });
 });
 

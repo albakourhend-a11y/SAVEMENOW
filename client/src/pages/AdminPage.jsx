@@ -53,7 +53,7 @@ export default function AdminPage() {
 
   const updateRequest = (id, status) => {
     axios.put(`${API}/emergency/${id}`, { status })
-      .then(res => setRequests(prev => prev.map(r => r.id === id ? res.data : r)));
+      .then(res => setRequests(prev => prev.map(r => String(r._id) === String(id) ? res.data : r)));
   };
 
   const overrideVehicleStatus = (id, newStatus) => {
@@ -66,7 +66,7 @@ export default function AdminPage() {
     if (!selectedVehicle) return;
     axios.patch(`${API}/emergency/${requestId}/reassign`, { vehicleId: Number(selectedVehicle) })
       .then(res => {
-        setRequests(prev => prev.map(r => r.id === requestId ? res.data.request : r));
+        setRequests(prev => prev.map(r => String(r._id) === String(requestId) ? res.data.request : r));
         setReassignId(null);
         setSelectedVehicle("");
       })
@@ -151,7 +151,7 @@ export default function AdminPage() {
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {requests.filter(r => r.status !== "RESOLVED" && r.status !== "REJECTED").map(r => (
-                <div key={r.id} style={styles.requestCard}>
+                <div key={r._id} style={styles.requestCard}>
                   <div style={styles.requestTop}>
                     <span style={styles.requestType}>{r.type}</span>
                     <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
@@ -160,19 +160,19 @@ export default function AdminPage() {
                     </div>
                   </div>
                   <p style={styles.requestInfo}>{r.location} - {r.caller}</p>
-                  {r.time && (
+                  {(r.createdAt || r.time) && (
                     <p style={{ color: "#6b7fa3", fontSize: 11, margin: "-8px 0 10px 0" }}>
-                      🕐 {timeAgo(r.time)}
+                      🕐 {timeAgo(r.createdAt || r.time)}
                     </p>
                   )}
                   <div style={styles.actionRow}>
-                    <button style={styles.btnWarning} onClick={() => updateRequest(r.id, "IN_PROGRESS")}>Mark In Progress</button>
-                    <button style={styles.btnSuccess} onClick={() => updateRequest(r.id, "RESOLVED")}>Resolve</button>
-                    <button style={styles.btnReassign} onClick={() => { setReassignId(reassignId === r.id ? null : r.id); setSelectedVehicle(""); }}>
+                    <button style={styles.btnWarning} onClick={() => updateRequest(r._id, "IN_PROGRESS")}>Mark In Progress</button>
+                    <button style={styles.btnSuccess} onClick={() => updateRequest(r._id, "RESOLVED")}>Resolve</button>
+                    <button style={styles.btnReassign} onClick={() => { setReassignId(reassignId === r._id ? null : r._id); setSelectedVehicle(""); }}>
                       🔄 Reassign
                     </button>
                   </div>
-                  {reassignId === r.id && (
+                  {reassignId === r._id && (
                     <div style={styles.reassignBox}>
                       <select
                         value={selectedVehicle}
@@ -184,7 +184,7 @@ export default function AdminPage() {
                           <option key={v.id} value={v.id}>{typeIcons[v.type] || "🚘"} {v.type} (#{v.id})</option>
                         ))}
                       </select>
-                      <button style={styles.btnConfirm} onClick={() => reassign(r.id)}>Confirm</button>
+                      <button style={styles.btnConfirm} onClick={() => reassign(r._id)}>Confirm</button>
                     </div>
                   )}
                 </div>
@@ -213,7 +213,7 @@ export default function AdminPage() {
               <p style={{ color: "#9fb0d0", fontSize: 13 }}>No closed incidents yet.</p>
             ) : (
               requests.filter(r => r.status === "RESOLVED" || r.status === "REJECTED").map(r => (
-                <div key={r.id} style={styles.logRow}>
+                <div key={r._id} style={styles.logRow}>
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <span style={{
                       ...styles.statusPill,
@@ -225,7 +225,7 @@ export default function AdminPage() {
                     <span style={{ color: "#9fb0d0", fontSize: 13 }}>— {r.location}</span>
                   </div>
                   <span style={{ color: "#9fb0d0", fontSize: 12 }}>
-                    {r.time ? new Date(r.time).toLocaleString() : "—"}
+                    {(r.createdAt || r.time) ? new Date(r.createdAt || r.time).toLocaleString() : "—"}
                   </span>
                 </div>
               ))

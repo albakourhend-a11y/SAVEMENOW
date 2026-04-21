@@ -9,6 +9,7 @@ export default function AdminPage() {
   const [requests, setRequests] = useState([]);
   const [reassignId, setReassignId] = useState(null);
   const [selectedVehicle, setSelectedVehicle] = useState("");
+  const [logOpen, setLogOpen] = useState(false);
 
   useEffect(() => {
     const fetchAll = () => {
@@ -142,6 +143,46 @@ export default function AdminPage() {
           )}
         </section>
       </div>
+
+      {/* Incident Log */}
+      <section style={{ ...styles.card, marginTop: 0 }}>
+        <div
+          style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}
+          onClick={() => setLogOpen(o => !o)}
+        >
+          <h2 style={{ ...styles.sectionTitle, margin: 0 }}>📋 Incident Log</h2>
+          <span style={{ color: "#9fb0d0", fontSize: 13 }}>
+            {requests.filter(r => r.status === "RESOLVED" || r.status === "REJECTED").length} closed &nbsp;
+            {logOpen ? "▲ Hide" : "▼ Show"}
+          </span>
+        </div>
+
+        {logOpen && (
+          <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
+            {requests.filter(r => r.status === "RESOLVED" || r.status === "REJECTED").length === 0 ? (
+              <p style={{ color: "#9fb0d0", fontSize: 13 }}>No closed incidents yet.</p>
+            ) : (
+              requests.filter(r => r.status === "RESOLVED" || r.status === "REJECTED").map(r => (
+                <div key={r.id} style={styles.logRow}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{
+                      ...styles.statusPill,
+                      background: r.status === "RESOLVED" ? "rgba(34,197,94,.12)" : "rgba(225,29,72,.12)",
+                      color: r.status === "RESOLVED" ? "#4ade80" : "#fb7185",
+                      border: r.status === "RESOLVED" ? "1px solid rgba(34,197,94,.3)" : "1px solid rgba(225,29,72,.3)",
+                    }}>{r.status}</span>
+                    <span style={{ fontWeight: 700, fontSize: 14 }}>{r.type}</span>
+                    <span style={{ color: "#9fb0d0", fontSize: 13 }}>— {r.location}</span>
+                  </div>
+                  <span style={{ color: "#9fb0d0", fontSize: 12 }}>
+                    {r.time ? new Date(r.time).toLocaleString() : "—"}
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </section>
     </div>
   );
 }
@@ -176,4 +217,5 @@ const styles = {
   reassignBox: { marginTop: 10, display: "flex", gap: 8, alignItems: "center" },
   select: { flex: 1, background: "#0b1220", border: "1px solid rgba(255,255,255,.15)", color: "#e8eefc", borderRadius: 8, padding: "8px 10px", fontSize: 13 },
   btnConfirm: { background: "rgba(124,58,237,.20)", border: "1px solid rgba(124,58,237,.4)", color: "#a78bfa", borderRadius: 8, padding: "8px 14px", fontWeight: 700, fontSize: 13, cursor: "pointer" },
+  logRow: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", borderRadius: 10, background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.06)" },
 };

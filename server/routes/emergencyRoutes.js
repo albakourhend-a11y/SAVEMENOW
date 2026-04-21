@@ -95,11 +95,14 @@ router.post("/request", async (req, res) => {
 
   nearest.status = "BUSY";
 
+  const severityMap = { Fire: "Critical", Medical: "High", Police: "Medium" };
+
   const newRequest = {
     id:        requests.length + 1,
     caller:    caller   || "Unknown caller",
     location:  location || "Current GPS location",
     type:      emergencyType,
+    severity:  severityMap[emergencyType] || "Medium",
     lat,
     lng,
     time:      new Date(),

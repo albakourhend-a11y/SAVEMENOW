@@ -4,6 +4,17 @@ import Map from "../components/Map";
 
 const API = import.meta.env.VITE_API_URL;
 
+function SeverityBadge({ severity, severityStyle, statusPill }) {
+  if (!severity) return null;
+  const s = severityStyle[severity] || severityStyle.Medium;
+  const icon = severity === "Critical" ? "🔴" : severity === "High" ? "🟠" : "🟡";
+  return (
+    <span style={{ ...statusPill, background: s.bg, color: s.color, border: `1px solid ${s.border}` }}>
+      {icon} {severity}
+    </span>
+  );
+}
+
 export default function AdminPage() {
   const [vehicles, setVehicles] = useState([]);
   const [requests, setRequests] = useState([]);
@@ -27,6 +38,11 @@ export default function AdminPage() {
   const pendingCount = requests.filter(r => r.status === "Pending").length;
   const inProgressCount = requests.filter(r => r.status === "IN_PROGRESS").length;
   const typeIcons = { Ambulance: "🚑", "Fire Truck": "🚒", "Police Car": "🚓", "Rescue Jeep": "🚙" };
+  const severityStyle = {
+    Critical: { bg: "rgba(225,29,72,.20)", color: "#fb7185", border: "rgba(225,29,72,.4)" },
+    High:     { bg: "rgba(249,115,22,.20)", color: "#fb923c", border: "rgba(249,115,22,.4)" },
+    Medium:   { bg: "rgba(251,191,36,.20)", color: "#fbbf24", border: "rgba(251,191,36,.4)" },
+  };
 
   const updateRequest = (id, status) => {
     axios.put(`${API}/emergency/${id}`, { status })
@@ -131,7 +147,10 @@ export default function AdminPage() {
                 <div key={r.id} style={styles.requestCard}>
                   <div style={styles.requestTop}>
                     <span style={styles.requestType}>{r.type}</span>
-                    <span style={styles.statusPill}>{r.status}</span>
+                    <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                      <SeverityBadge severity={r.severity} severityStyle={severityStyle} statusPill={styles.statusPill} />
+                      <span style={styles.statusPill}>{r.status}</span>
+                    </div>
                   </div>
                   <p style={styles.requestInfo}>{r.location} - {r.caller}</p>
                   <div style={styles.actionRow}>

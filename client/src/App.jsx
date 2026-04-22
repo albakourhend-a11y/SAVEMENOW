@@ -13,8 +13,9 @@ function ChatBotOverlay() {
   const location = useLocation();
   const role = localStorage.getItem("role");
   const token = localStorage.getItem("token");
-  if (!token || !PROTECTED_PATHS.includes(location.pathname)) return null;
-  return <ChatBot role={role} />;
+  const isGuestSOS = location.pathname === "/sos";
+  if ((!token && !isGuestSOS) || (!PROTECTED_PATHS.includes(location.pathname) && !isGuestSOS)) return null;
+  return <ChatBot role={role || "citizen"} />;
 }
 
 function ProtectedRoute({ children, allowedRole }) {
@@ -35,6 +36,7 @@ export default function App() {
         <Route path="/" element={<RoleSelect />} />
         <Route path="/register/:role" element={<RegisterPage />} />
         <Route path="/login/:role" element={<LoginPage />} />
+        <Route path="/sos" element={<CitizenPage guest />} />
 
         {/* Protected routes */}
         <Route path="/citizen" element={

@@ -67,7 +67,7 @@ async function getRoadETA(lat1, lng1, lat2, lng2) {
 
 // POST /emergency/request
 router.post("/request", async (req, res) => {
-  const { lat, lng, emergencyType, caller, location } = req.body;
+  const { lat, lng, emergencyType, priority, caller, location } = req.body;
   const user = getUserFromToken(req);
 
   // Duplicate check
@@ -105,6 +105,7 @@ router.post("/request", async (req, res) => {
     location:  resolvedLocation,
     type:      emergencyType,
     severity:  severityMap[emergencyType] || "Medium",
+    priority:  priority || "Normal",
     lat,
     lng,
     status:    "Pending",
@@ -152,7 +153,22 @@ router.put("/:id", async (req, res) => {
   res.json(request);
 });
 
-// PATCH /emergency/:id/reassign
+// PATCH /emergency/:id/rate — submit citizen rating for a resolved request
+router.patch("/:id/rate", async (req, res) => {
+  const request = await EmergencyRequest.findById(req.params.id);
+  if (!request) return res.status(404).json({ error: "Request not found" });
+
+  const { rating, comment } = req.body;
+  if (!rating || rating < 1 || rating > 5)
+    return res.status(400).json({ error: "Rating must be between 1 and 5" });
+
+  request.rating = Number(rating);
+  request.ratingComment = comment || "";
+  await request.save();
+  res.json({ message: "Rating saved", request });
+});
+
+// PATCH /emergency/:id/reassign — reassign to a different vehicle
 router.patch("/:id/reassign", async (req, res) => {
   const request = await EmergencyRequest.findById(req.params.id);
   if (!request) return res.status(404).json({ error: "Request not found" });

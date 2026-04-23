@@ -150,11 +150,11 @@ export default function DriverPage() {
   };
 
   const updateEmergencyStatus = async (id, newStatus) => {
-    setRequests(prev => prev.map(r => r.id === id ? { ...r, status: newStatus } : r));
+    setRequests(prev => prev.map(r => String(r._id || r.id) === String(id) ? { ...r, status: newStatus } : r));
     if (!serverOk || id === MOCK_EMERGENCY.id) return;
     try {
       const res = await axios.put(`${API}/emergency/${id}`, { status: newStatus });
-      setRequests(prev => prev.map(r => r.id === id ? res.data : r));
+      setRequests(prev => prev.map(r => String(r._id || r.id) === String(id) ? res.data : r));
     } catch {}
   };
 
@@ -170,7 +170,7 @@ export default function DriverPage() {
 
   const markArrived = async () => {
     if (!assignedRequest) return;
-    await updateEmergencyStatus(assignedRequest.id, "RESOLVED");
+    await updateEmergencyStatus(assignedRequest._id || assignedRequest.id, "RESOLVED");
     await updateVehicleStatus("FREE");
   };
 
@@ -326,11 +326,11 @@ export default function DriverPage() {
                     </span>
                   </div>
                 )}
-                {assignedRequest.time && (
+                {(assignedRequest.createdAt || assignedRequest.time) && (
                   <div style={styles.detailItem}>
                     <span style={styles.detailLabel}>RECEIVED</span>
                     <span style={{ ...styles.detailValue, color: "#9fb0d0" }}>
-                      🕐 {timeAgo(assignedRequest.time)}
+                      🕐 {timeAgo(assignedRequest.createdAt || assignedRequest.time)}
                     </span>
                   </div>
                 )}
@@ -346,8 +346,8 @@ export default function DriverPage() {
               </div>
             ) : !isResolved ? (
               <div style={styles.actionRow}>
-                <button onClick={() => acceptEmergency(assignedRequest.id)} style={styles.acceptBtn}>✅ Accept & Respond</button>
-                <button onClick={() => rejectEmergency(assignedRequest.id)} style={styles.rejectBtn}>❌ Reject</button>
+                <button onClick={() => acceptEmergency(assignedRequest._id || assignedRequest.id)} style={styles.acceptBtn}>✅ Accept & Respond</button>
+                <button onClick={() => rejectEmergency(assignedRequest._id || assignedRequest.id)} style={styles.rejectBtn}>❌ Reject</button>
               </div>
             ) : (
               <div style={styles.resolvedBanner}>

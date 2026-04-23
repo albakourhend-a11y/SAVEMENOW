@@ -57,9 +57,11 @@ export default function AdminPage() {
 
   useEffect(() => {
     const fetchAll = () => {
+      const token = localStorage.getItem("token");
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
       axios.get(`${API}/vehicle`).then(res => setVehicles(res.data)).catch(() => {});
-      axios.get(`${API}/emergency`).then(res => {
-        setRequests(res.data);
+      axios.get(`${API}/emergency`, { headers }).then(res => {
+        setRequests(Array.isArray(res.data) ? res.data : []);
         setLastRefresh(Date.now());
       }).catch(() => {});
     };
@@ -81,15 +83,15 @@ export default function AdminPage() {
     return (pOrder[a.priority] ?? 2) - (pOrder[b.priority] ?? 2);
   });
 
-  const updateRequest = (id, status) => {
-    axios.put(`${API}/emergency/${id}`, { status })
-      .then(res => setRequests(prev => prev.map(r => String(r._id) === String(id) ? res.data : r)));
+  const getAuthHeader = () => {
+    const token = localStorage.getItem("token");
+    return token ? { Authorization: `Bearer ${token}` } : {};
   };
 
-  const overrideVehicleStatus = (id, newStatus) => {
-    axios.patch(`${API}/vehicle/${id}/status`, { status: newStatus })
-      .then(res => setVehicles(prev => prev.map(v => v.id === id ? res.data : v)))
-      .catch(() => {});
+  const updateRequest = (id, status) => {
+    axios.put(`${API}/emergency/${id}`, { status }, { headers: getAuthHeader() })
+      .then(res => setRequests(prev => prev.map(r => String(r._id) === String(id) ? res.data : r)))
+      .catch(err => alert(`Failed to update: ${err.response?.data?.error || err.message}`));
   };
 
   const forceVehicleStatus = (vehicleId, newStatus) => {
@@ -100,7 +102,7 @@ export default function AdminPage() {
 
   const reassign = (requestId) => {
     if (!selectedVehicle) return;
-    axios.patch(`${API}/emergency/${requestId}/reassign`, { vehicleId: Number(selectedVehicle) })
+    axios.patch(`${API}/emergency/${requestId}/reassign`, { vehicleId: Number(selectedVehicle) }, { headers: getAuthHeader() })
       .then(res => {
         setRequests(prev => prev.map(r => String(r._id) === String(requestId) ? res.data.request : r));
         setReassignId(null);
@@ -227,7 +229,7 @@ export default function AdminPage() {
                 const prioConf = PRIO_CONFIG[r.priority] || PRIO_CONFIG.Normal;
                 const isActive = r.status === "IN_PROGRESS";
                 return (
-                  <div key={r.id} style={{
+                  <div key={String(r._id)} style={{
                     ...styles.requestCard,
                     borderColor: r.priority === "Critical" ? "rgba(225,29,72,.3)"
                       : r.priority === "Urgent" ? "rgba(249,115,22,.25)"
@@ -264,23 +266,23 @@ export default function AdminPage() {
                       <span>📍 {r.location || "GPS location"}</span>
                       <span>·</span>
                       <span>👤 {r.caller || "Anonymous"}</span>
-                      {r.time && (
+                      {r.createdAt && (
                         <>
                           <span>·</span>
-                          <span style={{ color: "#6b7fa3" }}>🕐 {timeAgo(r.time)}</span>
+                          <span style={{ color: "#6b7fa3" }}>🕐 {timeAgo(r.createdAt)}</span>
                         </>
                       )}
                     </div>
 
                     <div style={styles.actionRow}>
-                      <button style={styles.btnWarning}   onClick={() => updateRequest(r.id, "IN_PROGRESS")}>▶ In Progress</button>
-                      <button style={styles.btnSuccess}   onClick={() => updateRequest(r.id, "RESOLVED")}>✓ Resolve</button>
-                      <button style={styles.btnReassign}  onClick={() => { setReassignId(reassignId === r.id ? null : r.id); setSelectedVehicle(""); }}>
+                      <button style={styles.btnWarning}   onClick={() => updateRequest(r._id, "IN_PROGRESS")}>▶ In Progress</button>
+                      <button style={styles.btnSuccess}   onClick={() => updateRequest(r._id, "RESOLVED")}>✓ Resolve</button>
+                      <button style={styles.btnReassign}  onClick={() => { setReassignId(reassignId === String(r._id) ? null : String(r._id)); setSelectedVehicle(""); }}>
                         ↺ Reassign
                       </button>
                     </div>
 
-                    {reassignId === r.id && (
+                    {reassignId === String(r._id) && (
                       <div style={styles.reassignBox}>
                         <select
                           value={selectedVehicle}
@@ -292,7 +294,7 @@ export default function AdminPage() {
                             <option key={v.id} value={v.id}>{TYPE_ICONS[v.type] || "🚘"} {v.type} (#{v.id})</option>
                           ))}
                         </select>
-                        <button style={styles.btnConfirm} onClick={() => reassign(r.id)}>Confirm</button>
+                        <button style={styles.btnConfirm} onClick={() => reassign(r._id)}>Confirm</button>
                       </div>
                     )}
                   </div>
@@ -319,7 +321,7 @@ export default function AdminPage() {
               .map(r => {
                 const isResolved = r.status === "RESOLVED";
                 return (
-                  <div key={r.id} style={styles.historyCard}>
+                  <div key={String(r._id)} style={styles.historyCard}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
                       <span style={{
                         ...styles.statusBadge,
@@ -335,9 +337,9 @@ export default function AdminPage() {
                         — {r.location || "GPS"} · {r.caller || "Anonymous"}
                       </span>
                     </div>
-                    {r.time && (
+                    {r.createdAt && (
                       <span style={{ color: "#4a5568", fontSize: 11, whiteSpace: "nowrap", flexShrink: 0 }}>
-                        {new Date(r.time).toLocaleString()}
+                        {new Date(r.createdAt).toLocaleString()}
                       </span>
                     )}
                   </div>

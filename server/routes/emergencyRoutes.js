@@ -66,7 +66,7 @@ async function getRoadETA(lat1, lng1, lat2, lng2) {
 }
 
 // POST /emergency/request
-router.post("/request", async (req, res) => {
+router.post("/request", async (req, res) => { try {
   const { lat, lng, emergencyType, priority, caller, location } = req.body;
   const user = getUserFromToken(req);
 
@@ -124,67 +124,96 @@ router.post("/request", async (req, res) => {
     route:           eta.route,
     vehicleLocation: { lat: nearest.lat, lng: nearest.lng },
   });
+} catch (err) {
+  console.error("POST /emergency/request error:", err.message);
+  res.status(500).json({ error: "Server error processing request" });
+}
 });
 
 // GET /emergency — all requests (admin/driver) or own requests (citizen)
 router.get("/", async (req, res) => {
-  const user = getUserFromToken(req);
-  const query = (user?.role === "citizen" && user?.id)
-    ? { userId: user.id }
-    : {};
-  const requests = await EmergencyRequest.find(query).sort({ createdAt: -1 });
-  res.json(requests);
+  try {
+    const user = getUserFromToken(req);
+    const query = (user?.role === "citizen" && user?.id)
+      ? { userId: user.id }
+      : {};
+    const requests = await EmergencyRequest.find(query).sort({ createdAt: -1 });
+    res.json(requests);
+  } catch (err) {
+    console.error("GET /emergency error:", err.message);
+    res.status(500).json({ error: "Server error" });
+  }
 });
 
 // GET /emergency/all — admin always gets all
 router.get("/all", async (req, res) => {
-  const requests = await EmergencyRequest.find().sort({ createdAt: -1 });
-  res.json(requests);
+  try {
+    const requests = await EmergencyRequest.find().sort({ createdAt: -1 });
+    res.json(requests);
+  } catch (err) {
+    console.error("GET /emergency/all error:", err.message);
+    res.status(500).json({ error: "Server error" });
+  }
 });
 
 // PUT /emergency/:id — update status
 router.put("/:id", async (req, res) => {
-  const request = await EmergencyRequest.findByIdAndUpdate(
-    req.params.id,
-    { status: req.body.status },
-    { new: true }
-  );
-  if (!request) return res.status(404).json({ error: "Request not found" });
-  res.json(request);
+  try {
+    const request = await EmergencyRequest.findByIdAndUpdate(
+      req.params.id,
+      { status: req.body.status },
+      { new: true }
+    );
+    if (!request) return res.status(404).json({ error: "Request not found" });
+    res.json(request);
+  } catch (err) {
+    console.error("PUT /emergency/:id error:", err.message);
+    res.status(500).json({ error: "Server error" });
+  }
 });
 
 // PATCH /emergency/:id/rate — submit citizen rating for a resolved request
 router.patch("/:id/rate", async (req, res) => {
-  const request = await EmergencyRequest.findById(req.params.id);
-  if (!request) return res.status(404).json({ error: "Request not found" });
+  try {
+    const request = await EmergencyRequest.findById(req.params.id);
+    if (!request) return res.status(404).json({ error: "Request not found" });
 
-  const { rating, comment } = req.body;
-  if (!rating || rating < 1 || rating > 5)
-    return res.status(400).json({ error: "Rating must be between 1 and 5" });
+    const { rating, comment } = req.body;
+    if (!rating || rating < 1 || rating > 5)
+      return res.status(400).json({ error: "Rating must be between 1 and 5" });
 
-  request.rating = Number(rating);
-  request.ratingComment = comment || "";
-  await request.save();
-  res.json({ message: "Rating saved", request });
+    request.rating = Number(rating);
+    request.ratingComment = comment || "";
+    await request.save();
+    res.json({ message: "Rating saved", request });
+  } catch (err) {
+    console.error("PATCH /emergency/:id/rate error:", err.message);
+    res.status(500).json({ error: "Server error" });
+  }
 });
 
 // PATCH /emergency/:id/reassign — reassign to a different vehicle
 router.patch("/:id/reassign", async (req, res) => {
-  const request = await EmergencyRequest.findById(req.params.id);
-  if (!request) return res.status(404).json({ error: "Request not found" });
+  try {
+    const request = await EmergencyRequest.findById(req.params.id);
+    if (!request) return res.status(404).json({ error: "Request not found" });
 
-  const newVehicle = vehicles.find(v => v.id == req.body.vehicleId);
-  if (!newVehicle) return res.status(404).json({ error: "Vehicle not found" });
-  if (newVehicle.status !== "FREE") return res.status(400).json({ error: "Vehicle is not available" });
+    const newVehicle = vehicles.find(v => v.id == req.body.vehicleId);
+    if (!newVehicle) return res.status(404).json({ error: "Vehicle not found" });
+    if (newVehicle.status !== "FREE") return res.status(400).json({ error: "Vehicle is not available" });
 
-  const oldVehicle = vehicles.find(v => v.id === request.vehicleId);
-  if (oldVehicle) oldVehicle.status = "FREE";
+    const oldVehicle = vehicles.find(v => v.id === request.vehicleId);
+    if (oldVehicle) oldVehicle.status = "FREE";
 
-  newVehicle.status = "BUSY";
-  request.vehicleId = newVehicle.id;
-  await request.save();
+    newVehicle.status = "BUSY";
+    request.vehicleId = newVehicle.id;
+    await request.save();
 
-  res.json({ request, vehicle: newVehicle });
+    res.json({ request, vehicle: newVehicle });
+  } catch (err) {
+    console.error("PATCH /emergency/:id/reassign error:", err.message);
+    res.status(500).json({ error: "Server error" });
+  }
 });
 
 module.exports = router;

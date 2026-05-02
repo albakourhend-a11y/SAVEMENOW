@@ -3,6 +3,8 @@ const jwt = require("jsonwebtoken");
 const vehicles = require("../data/vehicles");
 const getDistance = require("../utils/distance");
 const EmergencyRequest = require("../models/EmergencyRequest");
+const User = require("../models/User");
+const { sendDispatchEmail } = require("../utils/mailer");
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || "savemenow_secret";
@@ -113,6 +115,25 @@ router.post("/request", async (req, res) => { try {
   });
 
   const eta = await getRoadETA(lat, lng, nearest.lat, nearest.lng);
+
+  // Send email notification if citizen has an account with email
+  if (user?.id) {
+    try {
+      const dbUser = await User.findById(user.id);
+      if (dbUser?.email) {
+        await sendDispatchEmail({
+          toEmail: dbUser.email,
+          callerName: dbUser.name,
+          emergencyType,
+          location: resolvedLocation,
+          vehicleType: nearest.type,
+          etaMinutes: eta.etaMinutes,
+        });
+      }
+    } catch (emailErr) {
+      console.warn("⚠️ Email sending failed:", emailErr.message);
+    }
+  }
 
   res.json({
     message:         "Emergency assigned",

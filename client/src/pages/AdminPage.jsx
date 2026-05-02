@@ -337,11 +337,29 @@ export default function AdminPage() {
                         — {r.location || "GPS"} · {r.caller || "Anonymous"}
                       </span>
                     </div>
-                    {r.createdAt && (
-                      <span style={{ color: "#4a5568", fontSize: 11, whiteSpace: "nowrap", flexShrink: 0 }}>
-                        {new Date(r.createdAt).toLocaleString()}
-                      </span>
-                    )}
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
+                      {r.rating ? (
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2 }}>
+                          <div style={{ display: "flex", gap: 2 }}>
+                            {[1,2,3,4,5].map(star => (
+                              <span key={star} style={{ fontSize: 14, color: star <= r.rating ? "#fbbf24" : "#2d3a52" }}>★</span>
+                            ))}
+                          </div>
+                          {r.ratingComment && (
+                            <span style={{ color: "#9fb0d0", fontSize: 10, maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                              "{r.ratingComment}"
+                            </span>
+                          )}
+                        </div>
+                      ) : isResolved ? (
+                        <span style={{ color: "#2d3a52", fontSize: 11 }}>No rating yet</span>
+                      ) : null}
+                      {r.createdAt && (
+                        <span style={{ color: "#4a5568", fontSize: 11, whiteSpace: "nowrap" }}>
+                          {new Date(r.createdAt).toLocaleString()}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 );
               })}

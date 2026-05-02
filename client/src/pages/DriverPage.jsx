@@ -91,6 +91,8 @@ export default function DriverPage() {
       }
     };
     load();
+    const interval = setInterval(load, 3_000);
+    return () => clearInterval(interval);
   }, []);
 
   // Heartbeat + GPS simulation
@@ -137,7 +139,7 @@ export default function DriverPage() {
     const active = requests.filter(r => {
       const s = String(r.status || "").toUpperCase();
       const isActive = s !== "RESOLVED" && s !== "REJECTED";
-      const isMyVehicle = r.vehicleId === vehicleId || r.vehicleId == null;
+      const isMyVehicle = Number(r.vehicleId) === Number(vehicleId);
       return isActive && isMyVehicle;
     });
     return active.length ? active[active.length - 1] : null;
@@ -240,7 +242,7 @@ export default function DriverPage() {
           { icon: "📡", label: "GPS Signal", value: "Active", color: "#22c55e" },
           { icon: "🚗", label: "Vehicle Type", value: vehicle.type, color: "#0ea5e9" },
           { icon: "🆔", label: "Vehicle ID", value: `#${vehicleId}`, color: "#a78bfa" },
-          { icon: "📋", label: "Queue", value: `${requests.filter(r => !["RESOLVED","REJECTED"].includes(String(r.status || "").toUpperCase())).length} active`, color: "#fbbf24" },
+          { icon: "📋", label: "Queue", value: `${requests.filter(r => !["RESOLVED","REJECTED"].includes(String(r.status || "").toUpperCase()) && Number(r.vehicleId) === Number(vehicleId)).length} active`, color: "#fbbf24" },
         ].map(s => (
           <div key={s.label} style={styles.statCard}>
             <span style={styles.statIcon}>{s.icon}</span>

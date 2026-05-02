@@ -116,23 +116,20 @@ router.post("/request", async (req, res) => { try {
 
   const eta = await getRoadETA(lat, lng, nearest.lat, nearest.lng);
 
-  // Send email notification if citizen has an account with email
+  // Send email notification — fire and forget (don't block the response)
   if (user?.id) {
-    try {
-      const dbUser = await User.findById(user.id);
+    User.findById(user.id).then(dbUser => {
       if (dbUser?.email) {
-        await sendDispatchEmail({
+        sendDispatchEmail({
           toEmail: dbUser.email,
           callerName: dbUser.name,
           emergencyType,
           location: resolvedLocation,
           vehicleType: nearest.type,
           etaMinutes: eta.etaMinutes,
-        });
+        }).catch(emailErr => console.warn("⚠️ Email sending failed:", emailErr.message));
       }
-    } catch (emailErr) {
-      console.warn("⚠️ Email sending failed:", emailErr.message);
-    }
+    }).catch(() => {});
   }
 
   res.json({

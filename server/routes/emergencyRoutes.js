@@ -120,6 +120,7 @@ router.post("/request", async (req, res) => { try {
   if (user?.id) {
     User.findById(user.id).then(dbUser => {
       if (dbUser?.email) {
+        console.log(`📧 Sending email to ${dbUser.email}...`);
         sendDispatchEmail({
           toEmail: dbUser.email,
           callerName: dbUser.name,
@@ -127,9 +128,17 @@ router.post("/request", async (req, res) => { try {
           location: resolvedLocation,
           vehicleType: nearest.type,
           etaMinutes: eta.etaMinutes,
-        }).catch(emailErr => console.warn("⚠️ Email sending failed:", emailErr.message));
+        }).then(() => {
+          console.log(`✅ Email sent to ${dbUser.email}`);
+        }).catch(emailErr => {
+          console.error("❌ Email sending failed:", emailErr.message);
+        });
+      } else {
+        console.log("⚠️ No email found for user, skipping email.");
       }
-    }).catch(() => {});
+    }).catch(err => console.error("❌ Failed to find user for email:", err.message));
+  } else {
+    console.log("ℹ️ Guest user — no email sent.");
   }
 
   res.json({
